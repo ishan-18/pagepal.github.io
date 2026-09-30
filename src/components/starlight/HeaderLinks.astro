@@ -1,6 +1,7 @@
 ---
 // Replaces Starlight's SocialIcons slot in the docs header with site navigation.
 import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import { url } from '../../lib/url';
 
 const links = [
   { label: 'Playground', href: '/playground/' },
@@ -9,7 +10,7 @@ const links = [
 ---
 
 <nav class="header-links" aria-label="Site">
-  {links.map((link) => <a href={link.href}>{link.label}</a>)}
+  {links.map((link) => <a href={url(link.href)}>{link.label}</a>)}
 </nav>
 <Default />
 

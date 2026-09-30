@@ -1,5 +1,6 @@
 ---
 import { summarize } from 'pagepal/analytics';
+import { url } from '../lib/url';
 import CodeBlock from '../components/CodeBlock.astro';
 import CodeTabs from '../components/CodeTabs.astro';
 import MoodCycle from '../components/MoodCycle.astro';
@@ -73,7 +74,7 @@ createPal({
           offline. The same signals become UX analytics that you own.
         </p>
         <div class="cta">
-          <a class="btn primary" href="/docs/quick-start/">Get started</a>
+          <a class="btn primary" href={url('/docs/quick-start/')}>Get started</a>
           <a class="btn" href="#try">Try it on this page</a>
         </div>
         <div class="install">
@@ -181,7 +182,7 @@ createPal({
           ))
         }
       </ul>
-      <p class="center-link"><a href="/docs/guides/moods/">How moods and priorities work →</a></p>
+      <p class="center-link"><a href={url('/docs/guides/moods/')}>How moods and priorities work →</a></p>
     </div>
   </section>
 
@@ -203,8 +204,8 @@ createPal({
         </ul>
         <CodeBlock code={analyticsCode} />
         <div class="cta">
-          <a class="btn primary" href="/analytics/">Open the live demo</a>
-          <a class="btn" href="/docs/analytics/">Read the analytics docs</a>
+          <a class="btn primary" href={url('/analytics/')}>Open the live demo</a>
+          <a class="btn" href={url('/docs/analytics/')}>Read the analytics docs</a>
         </div>
       </div>
       <div class="card">
@@ -273,7 +274,7 @@ createPal({
           Pick a built-in character, draw your own in a few lines of SVG and get every expression for free, or bring your own
           images for each mood.
         </p>
-        <a class="btn" href="/docs/guides/characters/">Characters & color</a>
+        <a class="btn" href={url('/docs/guides/characters/')}>Characters & color</a>
       </div>
       <div class="cast" aria-hidden="true">
         <span data-display-pal="cheer" data-character="blob" data-size="120"></span>
@@ -305,8 +306,8 @@ createPal({
       <h2>Give your page a pal</h2>
       <p class="lead">Five minutes to add. Useful from the first form error.</p>
       <div class="cta centered">
-        <a class="btn primary" href="/docs/quick-start/">Read the quick start</a>
-        <a class="btn" href="/playground/">Open the playground</a>
+        <a class="btn primary" href={url('/docs/quick-start/')}>Read the quick start</a>
+        <a class="btn" href={url('/playground/')}>Open the playground</a>
       </div>
     </div>
   </section>

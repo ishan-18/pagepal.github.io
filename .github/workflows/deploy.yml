@@ -24,7 +24,7 @@ jobs:
           path: site
       - uses: actions/checkout@v4
         with:
-          repository: PagePal/pagepal
+          repository: ishan-18/pagepal
           path: pagepal
       - uses: actions/setup-node@v4
         with:

@@ -1,12 +1,22 @@
 // @ts-check
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import { rehypeBaseLinks } from './src/lib/rehype-base-links.mjs';
+
+// Where the site is served from. `/` locally; `/pagepal/ui` for
+// https://ishan-18.github.io/pagepal/ui/ (set by the deploy workflow).
+const base = process.env.BASE_PATH || '/';
 
 // Docs live under /docs/ (src/content/docs/docs/*). The landing page, playground
 // and analytics demo are regular Astro pages in src/pages/.
 export default defineConfig({
   // Set SITE_URL when deploying so canonical URLs and the sitemap are absolute.
   site: process.env.SITE_URL,
+  base,
+  markdown: {
+    // Docs write links like /docs/quick-start/; prefix them with the base path.
+    rehypePlugins: [[rehypeBaseLinks, { base }]],
+  },
   integrations: [
     starlight({
       title: 'pagepal',

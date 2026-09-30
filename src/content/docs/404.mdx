@@ -6,15 +6,17 @@ pagefind: false
 hero:
   title: This page doesn't exist
   tagline: The pal looked everywhere. Try the docs, or search with the box above.
-  actions:
-    - text: Go to the docs
-      link: /docs/
-      icon: right-arrow
-    - text: Back home
-      link: /
-      variant: minimal
 ---
 
-<div style="display:grid;place-items:center;margin-top:-1rem">
+import { LinkButton } from '@astrojs/starlight/components';
+
+{/* Buttons live in the body (not hero actions) so their links get the site's base path. */}
+
+<div style="display:flex;flex-wrap:wrap;gap:1rem;margin-top:-1rem">
+  <LinkButton href="/docs/" icon="right-arrow">Go to the docs</LinkButton>
+  <LinkButton href="/" variant="minimal">Back home</LinkButton>
+</div>
+
+<div style="display:grid;place-items:center;margin-top:1.5rem">
   <span data-display-pal="confused" data-size="140" aria-hidden="true" />
 </div>

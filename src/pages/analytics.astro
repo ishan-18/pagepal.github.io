@@ -1,5 +1,6 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
+import { url } from '../lib/url';
 ---
 
 <SiteLayout
@@ -96,7 +97,7 @@ import SiteLayout from '../layouts/SiteLayout.astro';
 
         <div class="actions">
           <button type="button" class="btn small" id="reset">Start over</button>
-          <a class="btn small" href="/docs/analytics/">Read the analytics docs</a>
+          <a class="btn small" href={url('/docs/analytics/')}>Read the analytics docs</a>
         </div>
       </section>
     </div>

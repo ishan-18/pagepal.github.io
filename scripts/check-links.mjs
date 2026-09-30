@@ -1,5 +1,7 @@
 // Checks that every internal link and in-page anchor in the built site resolves.
 // Usage: npm run build && npm run check:links
+// With a base path, build and check with the same BASE_PATH (e.g. /pagepal/ui): links
+// missing the prefix are reported as broken, since they would 404 when deployed.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,14 +37,17 @@ const resolvePage = (pathname) => {
   return candidates.find((c) => existsSync(c) && statSync(c).isFile());
 };
 
+const base = (process.env.BASE_PATH || '').replace(/\/+$/, '');
+
 let broken = 0;
 for (const page of pages) {
   const html = readFileSync(page, 'utf8');
-  const pagePath = `/${relative(dist, page).replace(/\\/g, '/').replace(/index\.html$/, '')}`;
+  const pagePath = `${base}/${relative(dist, page).replace(/\\/g, '/').replace(/index\.html$/, '')}`;
   for (const [, href] of html.matchAll(/\shref="([^"]+)"/g)) {
     if (/^(https?:|mailto:|data:|javascript:|\/\/)/.test(href)) continue;
     const url = new URL(href, `http://site${pagePath}`);
-    const target = resolvePage(url.pathname);
+    const inBase = !base || url.pathname === base || url.pathname.startsWith(`${base}/`);
+    const target = inBase ? resolvePage(url.pathname.slice(base.length) || '/') : undefined;
     if (!target) {
       console.log(`BROKEN  ${pagePath} -> ${href}`);
       broken++;

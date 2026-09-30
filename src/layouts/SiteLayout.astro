@@ -4,6 +4,7 @@ import '../styles/tokens.css';
 import '../styles/site.css';
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
+import { url } from '../lib/url';
 import { SITE } from '../site';
 
 interface Props {
@@ -28,7 +29,7 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta name="theme-color" content="#7c5cff" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
     {Astro.site && <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />}
     <script is:inline>
       // Same storage key and logic as the Starlight docs, so the theme carries across.
