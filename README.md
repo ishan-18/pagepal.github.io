@@ -22,7 +22,7 @@ npm run check:links  # every internal link and #anchor in dist/ resolves
 npm run preview      # serve dist/
 ```
 
-Set `SITE_URL` when building for production (e.g. `SITE_URL=https://pagepal.dev npm run build`) so canonical URLs and the sitemap are absolute.
+Set `SITE_URL` when building for production so canonical URLs and the sitemap are absolute. To serve the site from a subfolder, set `BASE_PATH` for both the build and the link check (e.g. `BASE_PATH=/pagepal/ui`). Links in components go through `url()` in `src/lib/url.ts`; links written in Markdown get the prefix automatically (`src/lib/rehype-base-links.mjs`).
 
 ## Structure
 
@@ -55,6 +55,14 @@ Any page, including docs pages, can drive the site pal:
 
 ## Deploy
 
-`dist/` is a static site: GitHub Pages, Netlify, Vercel, Cloudflare Pages and any static host work. The build needs `../pagepal` to exist (or the npm dependency, once published).
+The site is published at **https://ishan-18.github.io/pagepal/ui/** by the **"Docs site"** workflow in the package repository (`ishan-18/pagepal`, `.github/workflows/pages.yml`). That workflow checks out both repositories side by side, builds the package, builds this site with `BASE_PATH=/pagepal/ui`, checks its links, and publishes:
 
-Set `githubUrl` in `src/site.ts` when the repository is public, and GitHub links appear in the header and footer.
+| URL | What |
+| --- | --- |
+| `/pagepal/` | Redirects to `/pagepal/ui/` |
+| `/pagepal/ui/` | This website |
+| `/pagepal/demo/` | The package's own demo pages |
+
+This repository doesn't publish itself. Its `.github/workflows/deploy.yml` asks `ishan-18/pagepal` to rebuild after every push, using a `PAGEPAL_DEPLOY_TOKEN` secret: a fine-grained personal access token for `ishan-18/pagepal` with **Contents: Read and write**. Without that secret, run "Docs site" in `ishan-18/pagepal` by hand after pushing here.
+
+`dist/` is a plain static site, so any static host (Netlify, Vercel, Cloudflare Pages) also works; the build needs `../pagepal` to exist (or the npm dependency, once published).

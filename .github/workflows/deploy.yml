@@ -1,52 +1,33 @@
-name: Deploy website
+name: Redeploy website
 
+# This repository doesn't publish itself. The site is built and published by the
+# "Docs site" workflow in ishan-18/pagepal, at https://ishan-18.github.io/pagepal/ui/.
+# This workflow asks that one to rebuild whenever the website changes.
+#
+# One-time setup: create a fine-grained personal access token with access to
+# ishan-18/pagepal and "Contents: Read and write", and save it in this
+# repository as the secret PAGEPAL_DEPLOY_TOKEN. Without it, run "Docs site"
+# in ishan-18/pagepal by hand after pushing here.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  build:
+  request-deploy:
     runs-on: ubuntu-latest
     steps:
-      # Same layout as on your computer: site/ and pagepal/ side by side.
-      - uses: actions/checkout@v4
-        with:
-          path: site
-      - uses: actions/checkout@v4
-        with:
-          repository: ishan-18/pagepal
-          path: pagepal
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Build pagepal
-        working-directory: pagepal
-        run: npm ci && npm run build
-      - name: Build website
-        working-directory: site
-        run: npm ci && npm run build
+      - name: Ask ishan-18/pagepal to rebuild the site
         env:
-          SITE_URL: https://ishan-18.github.io/pagepal/ui
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          TOKEN: ${{ secrets.PAGEPAL_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::No PAGEPAL_DEPLOY_TOKEN secret. Run the 'Docs site' workflow in ishan-18/pagepal to publish this change."
+            exit 0
+          fi
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/ishan-18/pagepal/dispatches \
+            -d '{"event_type":"website-updated"}'
+          echo "Rebuild requested: https://github.com/ishan-18/pagepal/actions/workflows/pages.yml"
