@@ -1,0 +1,83 @@
+---
+title: Characters & color
+description: Built-in characters, drawing your own in SVG, using images, and matching your brand color.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+<div class="cast">
+  <figure><span data-display-pal="neutral" data-character="blob" data-size="96" aria-hidden="true" /><figcaption>blob</figcaption></figure>
+  <figure><span data-display-pal="neutral" data-character="cat" data-size="96" aria-hidden="true" /><figcaption>cat</figcaption></figure>
+  <figure><span data-display-pal="neutral" data-character="ghost" data-size="96" aria-hidden="true" /><figcaption>ghost</figcaption></figure>
+</div>
+
+<style>{`
+  .cast { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1rem 0; }
+  .cast figure { margin: 0; display: grid; justify-items: center; gap: .25rem; }
+  .cast figcaption { font-family: var(--sl-font-mono); font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+`}</style>
+
+```ts
+createPal({ character: 'cat' });   // 'blob' (default), 'cat', 'ghost'
+```
+
+## Your own SVG character
+
+A character is a body outline plus optional artwork behind it (ears, tails) and in front of it (highlights, whiskers), drawn in a 100×100 box. pagepal draws the **face and effects on top**, so your character gets all twelve expressions for free.
+
+```ts
+import { createPal, defineCharacter } from 'pagepal';
+
+const robot = defineCharacter({
+  name: 'robot',
+  color: '#5cc8ff',
+  body: 'M15 20 H85 V92 H15 Z',                                        // filled with the body color
+  back: '<rect class="fur" x="47" y="4" width="6" height="16"/>',      // antenna, behind the body
+  front: '<rect x="20" y="26" width="16" height="6" rx="3" fill="#fff" opacity=".3"/>',
+  motion: 'breathe',                                                   // or 'hover' (floats, like the ghost)
+});
+
+createPal({ character: robot });
+```
+
+Keep the face area clear: the eyes sit around y = 54 (x = 36 and 64), the mouth around y = 70, and the cheeks at x = 26 and 74. Shapes with `class="fur"` are filled with the body color and outlined like the body.
+
+<Aside type="caution">
+  Character markup is inserted as SVG. Only use markup you wrote, never user input.
+</Aside>
+
+## Your own images
+
+For fully custom art, give one image per mood. Moods without an image fall back to `neutral`:
+
+```ts
+createPal({
+  character: {
+    images: {
+      neutral: '/pal/idle.png',
+      cheer: '/pal/yay.png',
+      wince: '/pal/oops.png',
+      waiting: '/pal/hmm.png',
+    },
+  },
+});
+```
+
+Image characters still get the motion (jumping, shaking, tilting toward form errors) and the effects around them (confetti, sweat drops, Zzz). URLs are set with `setAttribute`, so they can't inject markup.
+
+## Color
+
+In order of precedence:
+
+1. **The `color` option**: any CSS color. `createPal({ color: '#e8590c' })`.
+2. **A `--pagepal-color` CSS variable** on your page. It's live, so it can follow your theme:
+
+   ```css
+   :root { --pagepal-color: #7c5cff; }
+   :root.dark { --pagepal-color: #a592ff; }
+   ```
+
+3. **`color: 'auto'`** tries your `<meta name="theme-color">`, then common accent variables (`--accent`, `--color-accent`, `--accent-color`, `--primary`, `--color-primary`, `--brand`, `--brand-color`). Grays, near-whites and near-blacks are skipped.
+4. **The character's own color.**
+
+The outline is derived from the body color automatically.

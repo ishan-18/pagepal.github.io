@@ -1,0 +1,76 @@
+---
+title: Staying out of the way
+description: Avoiding chat widgets and focused fields, dragging, dismissing, and positioning.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A corner mascot competes with everything else pinned to that corner. pagepal tries hard not to be in the way.
+
+## Avoiding overlaps
+
+If something `position: fixed` or `sticky` occupies its corner (a chat widget, a cookie banner, a sticky footer), the pal **slides past it**. When there's no room, it **moves to the other side** of the screen. It re-checks when the page changes, on resize and on scroll, because widgets tend to load late.
+
+It also **slides aside while the focused field is underneath it**, and comes back on blur.
+
+```ts
+createPal({
+  avoid: {
+    selectors: ['#promo-bar'],  // also avoid these, even if they aren't fixed
+    focus: true,                // slide aside for the focused field
+  },
+});
+```
+
+A spot the user dragged the pal to is left alone.
+
+## Dragging
+
+Users can drag the pal anywhere. The position is kept within the viewport, re-clamped on resize, and remembered for your site in `localStorage`. A press that moves less than 4px counts as a poke instead, and the pal winks.
+
+## Dismissing
+
+A ✕ appears on hover, after a tap on touch screens, and when it receives keyboard focus. Dismissing is remembered for your site.
+
+```ts
+pal.on('dismiss', () => showSettingsHint());
+pal.show();      // bring it back (clears the remembered dismissal)
+pal.hide();      // hide for now, not remembered
+pal.dismiss();   // same as the ✕
+pal.hidden;      // current state
+```
+
+<Aside type="tip">
+  If your users can dismiss the pal, give them a way to bring it back, such as a "Show mascot" setting that calls `pal.show()`. This site's footer does exactly that.
+</Aside>
+
+## Storage
+
+```ts
+createPal({ remember: false });           // don't use localStorage at all
+createPal({ storageKey: 'my-app-pal' });  // separate state for several pals
+```
+
+If storage is unavailable (private mode, blocked site data), nothing is remembered and nothing breaks.
+
+## Turning interaction off
+
+```ts
+createPal({ interactive: false });
+```
+
+The pal becomes click-through: no poking, dragging or dismissing, and it never receives pointer events.
+
+## Position and size
+
+```ts
+createPal({
+  position: 'bottom-left',   // 'bottom-right' (default), 'bottom-left', 'top-right', 'top-left'
+  size: 64,                  // px
+  offset: 16,                // px from the edges
+  zIndex: 1000,
+});
+
+// Or in the page flow, inside an element (not draggable):
+createPal({ position: 'inline', container: document.querySelector('#mascot-slot') });
+```

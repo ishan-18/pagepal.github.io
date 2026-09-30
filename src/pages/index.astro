@@ -1,0 +1,494 @@
+---
+import { summarize } from 'pagepal/analytics';
+import CodeBlock from '../components/CodeBlock.astro';
+import CodeTabs from '../components/CodeTabs.astro';
+import MoodCycle from '../components/MoodCycle.astro';
+import SummaryPreview from '../components/SummaryPreview.astro';
+import { MOODS } from '../data/moods';
+import { SAMPLE_EVENTS } from '../data/sample-events';
+import SiteLayout from '../layouts/SiteLayout.astro';
+
+const summary = summarize(SAMPLE_EVENTS);
+
+const frameworks = [
+  {
+    label: 'HTML',
+    lang: 'html',
+    code: `<script src="https://unpkg.com/pagepal"></script>
+<page-pal watch="form#signup" requests></page-pal>`,
+  },
+  {
+    label: 'JavaScript',
+    lang: 'ts',
+    code: `import { createPal } from 'pagepal';
+
+createPal({ watch: 'form#signup', requests: true });`,
+  },
+  {
+    label: 'React',
+    lang: 'tsx',
+    code: `import { PagePal } from 'pagepal/react';
+
+export function App() {
+  return (
+    <>
+      <PagePal watch="form#signup" requests character="cat" />
+      <Routes />
+    </>
+  );
+}`,
+  },
+  {
+    label: 'Vue',
+    lang: 'vue',
+    code: `<script setup>
+import { PagePal } from 'pagepal/vue';
+</script>
+
+<template>
+  <PagePal watch="form#signup" requests :options="{ character: 'ghost' }" />
+</template>`,
+  },
+];
+
+const analyticsCode = `import { createPal } from 'pagepal';
+import { analytics } from 'pagepal/analytics';
+
+createPal({
+  watch: 'form#checkout',
+  requests: true,
+  plugins: [analytics({ endpoint: '/api/ux' })],
+});`;
+---
+
+<SiteLayout title="pagepal" palSize={84}>
+  <!-- ============ hero ============ -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">Open source · No dependencies · MIT</span>
+        <h1>A mascot that <span class="hl">actually</span> tells users something.</h1>
+        <p class="lead">
+          pagepal reacts to what's happening on your page: form errors, slow requests, buttons that do nothing, going
+          offline. The same signals become UX analytics that you own.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="/docs/quick-start/">Get started</a>
+          <a class="btn" href="#try">Try it on this page</a>
+        </div>
+        <div class="install">
+          <CodeBlock lang="bash" code="npm install pagepal" />
+        </div>
+      </div>
+      <div class="hero-art">
+        <MoodCycle />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ try it ============ -->
+  <section class="section alt" id="try">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Live on this page</span>
+        <h2>Don't take our word for it. Poke the page.</h2>
+        <p class="lead">
+          The pal in the bottom corner is watching this page. Try these and watch it react. Right now it's{' '}
+          <span class="mood-pill" data-pal-mood>neutral</span>
+        </p>
+      </div>
+
+      <div class="grid three demos">
+        <article class="card demo">
+          <h3>A form error</h3>
+          <p class="muted">Submit an invalid email. It winces and turns to look at the field.</p>
+          <form data-pal-form data-pal-demo class="demo-form">
+            <input class="field" type="email" required placeholder="you@example" aria-label="Email" />
+            <button class="btn small primary">Sign up</button>
+          </form>
+          <p class="expect">→ <code>wince</code>, then <code>cheer</code> when it's valid</p>
+        </article>
+
+        <article class="card demo">
+          <h3>A slow request</h3>
+          <p class="muted">Requests over 150 ms show the pal waiting. Failures make it wince.</p>
+          <div class="row">
+            <button class="btn small" type="button" data-fetch="/demo-api/slow">Load data (2s)</button>
+            <button class="btn small" type="button" data-fetch="/demo-api/fail">Save (fails)</button>
+          </div>
+          <p class="expect">→ <code>waiting</code>, <code>wince</code></p>
+        </article>
+
+        <article class="card demo">
+          <h3>A password field</h3>
+          <p class="muted">It covers its eyes while you type, and peeks when you show the password.</p>
+          <div class="row">
+            <input class="field" type="password" placeholder="Password" aria-label="Password" data-password />
+            <button class="btn small" type="button" data-peek>Show</button>
+          </div>
+          <p class="expect">→ <code>shy</code></p>
+        </article>
+
+        <article class="card demo">
+          <h3>A button that does nothing</h3>
+          <p class="muted">Click once and nothing happens: a dead click. Click it four times fast: a rage click.</p>
+          <div class="row">
+            <button class="btn small" type="button" data-broken>Apply coupon</button>
+          </div>
+          <p class="expect">→ <code>confused</code>, <code>concerned</code></p>
+        </article>
+
+        <article class="card demo">
+          <h3>Losing the connection</h3>
+          <p class="muted">Pretend to go offline (or really do, in DevTools). It's sad until you're back.</p>
+          <div class="row">
+            <button class="btn small" type="button" data-offline aria-pressed="false">Go offline</button>
+          </div>
+          <p class="expect">→ <code>sad</code>, then <code>cheer</code></p>
+        </article>
+
+        <article class="card demo">
+          <h3>And a lot more</h3>
+          <p class="muted">
+            Scroll fast to make it dizzy. Leave it alone for 30 seconds and it dozes off. Poke it, drag it anywhere, or hover
+            and press ✕.
+          </p>
+          <p class="expect">→ <code>dizzy</code>, <code>dozing</code>, <code>wink</code></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ moods ============ -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head center">
+        <span class="eyebrow">Twelve moods</span>
+        <h2>Every reaction means something</h2>
+        <p class="lead">
+          When several things happen at once, the most important one wins. A form error while offline shows a wince, then
+          goes back to sad.
+        </p>
+      </div>
+      <ul class="mood-grid">
+        {
+          MOODS.map((m) => (
+            <li>
+              <span data-display-pal={m.mood} data-size="84" aria-hidden="true" />
+              <strong>{m.mood}</strong>
+              <span class="muted small">{m.trigger}</span>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="center-link"><a href="/docs/guides/moods/">How moods and priorities work →</a></p>
+    </div>
+  </section>
+
+  <!-- ============ analytics ============ -->
+  <section class="section alt" id="analytics">
+    <div class="container analytics-grid">
+      <div>
+        <span class="eyebrow">Analytics you own</span>
+        <h2>See exactly where users struggle</h2>
+        <p class="lead">
+          The signals that move the mascot are the ones you'd want in a dashboard. Add one plugin and pagepal sends them to <em>your</em> endpoint,
+          or to the analytics tool you already use.
+        </p>
+        <ul class="checks">
+          <li>Rage clicks and dead clicks, by element</li>
+          <li>Form errors by field and reason, and where people abandon</li>
+          <li>Failing and slow endpoints, and time spent waiting</li>
+          <li>Private by default: no typed values, masked labels, respects Do Not Track and GPC</li>
+        </ul>
+        <CodeBlock code={analyticsCode} />
+        <div class="cta">
+          <a class="btn primary" href="/analytics/">Open the live demo</a>
+          <a class="btn" href="/docs/analytics/">Read the analytics docs</a>
+        </div>
+      </div>
+      <div class="card">
+        <SummaryPreview summary={summary} caption="Sample data: a made-up week of checkout traffic, run through summarize()." />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ built for real sites ============ -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head center">
+        <span class="eyebrow">Built for real sites</span>
+        <h2>Welcome on your page, not in the way</h2>
+      </div>
+      <div class="grid three">
+        <article class="card feature">
+          <h3>Stays out of the way</h3>
+          <p class="muted">
+            Steps aside for chat widgets, cookie banners and the field you're typing in. Users can drag it anywhere or dismiss
+            it, and it remembers.
+          </p>
+        </article>
+        <article class="card feature">
+          <h3>Accessible</h3>
+          <p class="muted">
+            The artwork is hidden from screen readers, the dismiss button is a real labelled button, and with reduced motion it
+            changes expression without animating.
+          </p>
+        </article>
+        <article class="card feature">
+          <h3>Private by default</h3>
+          <p class="muted">
+            Nothing is sent unless you configure it. No input values, digits and emails masked, IDs stripped from URLs,
+            consent-aware.
+          </p>
+        </article>
+        <article class="card feature">
+          <h3>Small and tree-shakable</h3>
+          <p class="muted">
+            No dependencies. Build from <code>pagepal/core</code> and pick only the watchers you need. Size budgets are checked
+            in CI.
+          </p>
+        </article>
+        <article class="card feature">
+          <h3>Isolated</h3>
+          <p class="muted">Rendered in a Shadow DOM: your CSS can't break it and its CSS can't leak into your page.</p>
+        </article>
+        <article class="card feature">
+          <h3>Extensible</h3>
+          <p class="muted">
+            Plugins raise their own signals, a debug panel explains every mood, and you can draw your own character.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ characters ============ -->
+  <section class="section alt">
+    <div class="container characters">
+      <div>
+        <span class="eyebrow">Characters</span>
+        <h2>Blob, cat, ghost, or your own</h2>
+        <p class="lead">
+          Pick a built-in character, draw your own in a few lines of SVG and get every expression for free, or bring your own
+          images for each mood.
+        </p>
+        <a class="btn" href="/docs/guides/characters/">Characters & color</a>
+      </div>
+      <div class="cast" aria-hidden="true">
+        <span data-display-pal="cheer" data-character="blob" data-size="120"></span>
+        <span data-display-pal="wink" data-character="cat" data-size="120"></span>
+        <span data-display-pal="waiting" data-character="ghost" data-size="120"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ frameworks ============ -->
+  <section class="section">
+    <div class="container frameworks">
+      <div class="section-head">
+        <span class="eyebrow">Works everywhere</span>
+        <h2>One line in any stack</h2>
+        <p class="lead">
+          A web component for plain HTML and every framework, plus first-class React and Vue components. Safe to import during
+          server-side rendering.
+        </p>
+      </div>
+      <CodeTabs id="frameworks" items={frameworks} />
+    </div>
+  </section>
+
+  <!-- ============ final CTA ============ -->
+  <section class="section alt final">
+    <div class="container center">
+      <span data-display-pal="cheer" data-size="110" aria-hidden="true"></span>
+      <h2>Give your page a pal</h2>
+      <p class="lead">Five minutes to add. Useful from the first form error.</p>
+      <div class="cta centered">
+        <a class="btn primary" href="/docs/quick-start/">Read the quick start</a>
+        <a class="btn" href="/playground/">Open the playground</a>
+      </div>
+    </div>
+  </section>
+</SiteLayout>
+
+<script>
+  import { mountDisplayPals } from '../scripts/display-pal';
+
+  mountDisplayPals();
+
+  document.querySelectorAll<HTMLButtonElement>('[data-fetch]').forEach((button) =>
+    button.addEventListener('click', () => void fetch(button.dataset.fetch!).catch(() => {})),
+  );
+
+  const password = document.querySelector<HTMLInputElement>('[data-password]');
+  document.querySelector('[data-peek]')?.addEventListener('click', (event) => {
+    if (!password) return;
+    const showing = password.type === 'text';
+    password.type = showing ? 'password' : 'text';
+    (event.currentTarget as HTMLButtonElement).textContent = showing ? 'Show' : 'Hide';
+    password.focus();
+  });
+
+  // Intentionally does nothing: that's the demo.
+  document.querySelector('[data-broken]')?.addEventListener('click', () => {});
+
+  let offline = false;
+  document.querySelector<HTMLButtonElement>('[data-offline]')?.addEventListener('click', (event) => {
+    offline = !offline;
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => !offline });
+    window.dispatchEvent(new Event(offline ? 'offline' : 'online'));
+    const button = event.currentTarget as HTMLButtonElement;
+    button.textContent = offline ? 'Back online' : 'Go offline';
+    button.setAttribute('aria-pressed', String(offline));
+  });
+</script>
+
+<style>
+  .hero {
+    padding: 56px 0 72px;
+    background: radial-gradient(1200px 500px at 85% 0%, var(--site-accent-soft), transparent 60%);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 40px;
+    align-items: center;
+  }
+  @media (max-width: 900px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .hero-art {
+      order: -1;
+    }
+  }
+  .hl {
+    color: var(--site-accent);
+  }
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .cta.centered {
+    justify-content: center;
+  }
+  .install {
+    margin-top: 22px;
+    max-width: 380px;
+  }
+  .demos .demo {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+  }
+  .demo-form,
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .demo-form .field,
+  .row .field {
+    flex: 1 1 160px;
+  }
+  .expect {
+    font-size: 0.85rem;
+    color: var(--site-muted);
+  }
+  .mood-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px 12px;
+  }
+  .mood-grid li {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 8px;
+  }
+  .mood-grid strong {
+    font: 800 1rem/1.2 var(--site-font-display);
+    margin-top: 4px;
+  }
+  .small {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .center-link {
+    text-align: center;
+    margin-top: 28px;
+  }
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 36px;
+    align-items: start;
+  }
+  @media (max-width: 960px) {
+    .analytics-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .analytics-grid .lead {
+    margin-bottom: 18px;
+  }
+  .checks {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px;
+    display: grid;
+    gap: 8px;
+  }
+  .checks li {
+    padding-left: 26px;
+    position: relative;
+  }
+  .checks li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--site-ok);
+    font-weight: 800;
+  }
+  .feature {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+  }
+  .characters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: center;
+  }
+  .characters .lead {
+    margin-bottom: 22px;
+  }
+  @media (max-width: 860px) {
+    .characters {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .cast {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .frameworks {
+    max-width: 820px;
+  }
+  .final .center {
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+  }
+</style>

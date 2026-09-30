@@ -1,0 +1,63 @@
+---
+title: Dashboards
+description: Turn raw events into hotspots, form funnels and failing endpoints with summarize().
+---
+
+import { summarize } from 'pagepal/analytics';
+import { SAMPLE_EVENTS } from '../../../../data/sample-events';
+import SummaryPreview from '../../../../components/SummaryPreview.astro';
+
+export const summary = summarize(SAMPLE_EVENTS);
+
+`summarize(events)` takes raw events from any number of page views and returns the numbers a UX dashboard needs. It's a pure function that runs anywhere: the browser, a Node script, or an edge function.
+
+```ts
+import { summarize } from 'pagepal/analytics';
+
+const events = await db.select('ux_events').where('ts', '>', lastWeek);
+const report = summarize(events);
+```
+
+<div class="not-content" style="margin: 1.5rem 0">
+  <SummaryPreview summary={summary} caption="Sample data rendered from summarize() output, like the analytics section on the home page." />
+</div>
+
+## What it returns
+
+```ts
+interface UXSummary {
+  views: number;
+  counts: Partial<Record<UXEventType, number>>;
+  frustrationRate: number;   // share of views with a rage or dead click
+  dismissRate: number;       // share of views where the mascot was dismissed
+  avgWaitMs: number;         // average time per view spent waiting on requests
+  offlineMs: number;         // total offline time
+
+  // Top 10 each, worst first:
+  frustration: { element; page; rageClicks; deadClicks; total }[];
+  formErrors: { form; field; validity; count }[];
+  forms: { form; submits; successes; abandons; errors; topAbandonField }[];
+  requests: { endpoint; errors; slow; worstMs }[];   // endpoint = "POST /api/payments"
+}
+```
+
+## Reading it
+
+- **`frustration`** is your list of broken or misleading UI. A high `deadClicks` count on something that isn't a button usually means it *looks* like one.
+- **`formErrors`** tells you which validation rules users trip over. A field that often fails with `patternMismatch` usually needs a clearer hint or a more forgiving pattern.
+- **`forms[].topAbandonField`** is where people give up. Look at that field first.
+- **`requests`** points at the endpoints behind "the app is slow" and "it didn't save".
+- **`dismissRate`** tells you whether users like the mascot. If it's high, make it smaller, quieter, or `interactive: false`.
+
+## In the browser
+
+For the current page view, without a server:
+
+```ts
+const ux = analytics();
+createPal({ plugins: [ux] });
+
+console.table(ux.summary().frustration);
+```
+
+The [analytics demo](/analytics/) builds a live dashboard this way.

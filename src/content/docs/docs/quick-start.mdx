@@ -1,0 +1,77 @@
+---
+title: Quick start
+description: A working pal, a watched form and watched requests in five minutes.
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. **Install it.**
+
+   ```bash
+   npm install pagepal
+   ```
+
+2. **Create a pal** once, when your app starts:
+
+   ```ts
+   import { createPal } from 'pagepal';
+
+   const pal = createPal();
+   ```
+
+   A pal appears in the bottom-right corner. Out of the box it reacts to fast scrolling, going offline, idling, password fields, rage clicks, dead clicks and copying. It also steps aside for chat widgets.
+
+3. **Watch your forms.** Pass a selector (it also covers forms rendered later) or an element:
+
+   ```ts
+   const pal = createPal({ watch: 'form#signup' });
+   ```
+
+   Now it winces at validation errors and looks at the field that caused them, warms up as required fields fill in, and cheers on a successful submit.
+
+4. **Watch your requests.** `fetch` and `XMLHttpRequest` (which axios uses) are both covered:
+
+   ```ts
+   const pal = createPal({ watch: 'form#signup', requests: true });
+   ```
+
+   It waits while requests take longer than 150 ms and winces when one fails.
+
+5. **Optional: record what it sees.** Add the analytics plugin and point it at your own endpoint:
+
+   ```ts
+   import { createPal } from 'pagepal';
+   import { analytics } from 'pagepal/analytics';
+
+   createPal({
+     watch: 'form#signup',
+     requests: true,
+     plugins: [analytics({ endpoint: '/api/ux' })],
+   });
+   ```
+
+</Steps>
+
+## Try it here
+
+This page has a pal too. Submit an empty or invalid email:
+
+<div class="demo-box">
+  <p class="demo-hint">Mood: <code data-pal-mood>neutral</code></p>
+  <form data-pal-form data-pal-demo>
+    <input type="email" required placeholder="you@example" aria-label="Email" />
+    <button class="primary">Sign up</button>
+  </form>
+</div>
+
+<Aside>
+  Only one pal per page is recommended. If your app has several roots, create the pal once and share it. In React, [`PagePalProvider`](/docs/frameworks/react/) does this for you.
+</Aside>
+
+## Next steps
+
+- Learn how [moods and priorities](/docs/guides/moods/) decide what the pal shows.
+- Tune [forms](/docs/guides/forms/) and [requests](/docs/guides/requests/).
+- See every option in the [options reference](/docs/reference/options/), or try them in the [playground](/playground/).

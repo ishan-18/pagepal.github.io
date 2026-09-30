@@ -1,0 +1,80 @@
+---
+title: Forms
+description: Wince at validation errors, look at the bad field, warm up as the form fills in, cheer on submit.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+```ts
+createPal({ watch: 'form#signup' });   // at creation
+pal.watch('form#checkout');            // or later; returns an unwatch function
+```
+
+`watch` accepts a **selector** or an **element**, and the element can be a form or any container of forms. A selector also matches forms rendered *after* you call `watch()`, which suits single-page apps. To watch several, pass an array: `watch: ['#signup', '#newsletter']`.
+
+## What it reacts to
+
+| Situation | Reaction |
+| --- | --- |
+| A field fails native validation (`invalid` event) | `wince`, and it turns to look at the first bad field |
+| A field gets `aria-invalid="true"` | `wince` and look at it |
+| Required fields become valid | cheeks warm up; `wink` when they're all valid |
+| The form is submitted with no invalid fields | `cheer` |
+| Submitted with an invalid field (e.g. `novalidate` forms) | `wince` instead |
+
+<div class="demo-box">
+  <p class="demo-hint">Try both kinds of validation. Mood: <code data-pal-mood>neutral</code></p>
+  <form data-pal-form data-pal-demo>
+    <input type="email" required placeholder="Email (required)" aria-label="Email" />
+    <input required minlength="3" placeholder="Name (3+ chars)" aria-label="Name" />
+    <button class="primary">Submit</button>
+  </form>
+</div>
+
+## Form libraries
+
+Native validation works as-is. For JavaScript validation, pagepal watches `aria-invalid`, which accessible forms set on invalid fields anyway:
+
+- **MUI, Chakra UI, Mantine** and most component libraries set it for you.
+- **React Hook Form, Formik**: pass it yourself, which also helps screen reader users:
+
+```tsx
+<input {...register('email')} aria-invalid={errors.email ? 'true' : 'false'} />
+```
+
+<Aside>
+  pagepal waits one tick after `submit` before deciding between cheer and wince. Validators that flag fields inside their submit handler therefore never cause a cheer followed by a wince.
+</Aside>
+
+## Cheering only after the server says OK
+
+A successful *submit* isn't always a successful *save*. Turn the automatic cheer off and cheer yourself:
+
+```ts
+pal.watch('form#checkout', { cheer: false });
+
+const res = await fetch('/api/orders', { method: 'POST', body });
+if (res.ok) pal.react('cheer');
+```
+
+## Options
+
+```ts
+pal.watch(target, {
+  cheer: true,     // cheer on a valid submit
+  wince: true,     // wince (and look) on validation errors
+  progress: true,  // warm up as required fields fill in; wink when complete
+});
+```
+
+Looking at the bad field is controlled by the pal-level `gaze` option: `gaze: false` turns it off, and `gaze: { duration: 2500 }` sets how long it looks.
+
+## Events
+
+Forms emit events you can use directly or feed to [analytics](/docs/analytics/):
+
+```ts
+pal.on('formError', ({ form, field, source, validity }) => {});   // validity: 'valueMissing', 'typeMismatch', …
+pal.on('formSubmit', ({ form, success }) => {});
+pal.on('formProgress', ({ form, field, progress }) => {});         // progress: 0..1, or null without required fields
+```

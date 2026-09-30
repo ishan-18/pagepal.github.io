@@ -1,0 +1,54 @@
+---
+title: Vue
+description: The PagePal component and the usePal composable for Vue 3.
+---
+
+```bash
+npm install pagepal
+```
+
+`pagepal/vue` works with Vue 3.2 and later. Vue is a peer dependency and isn't bundled.
+
+## `<PagePal>`
+
+Renders nothing; puts a pal on the page while mounted:
+
+```vue
+<script setup>
+import { PagePal } from 'pagepal/vue';
+</script>
+
+<template>
+  <PagePal watch="form#signup" requests :options="{ character: 'ghost', idle: false }" />
+</template>
+```
+
+| Prop | Type | Meaning |
+| --- | --- | --- |
+| `watch` | selector, element, or an array | Forms to watch |
+| `requests` | `boolean` or request options | Watch fetch and XHR |
+| `options` | [`PalOptions`](/docs/reference/options/) | Everything else |
+
+## `usePal(options)`
+
+A composable that creates the pal on mount and destroys it on unmount. It returns a `shallowRef<Pal | null>`:
+
+```vue
+<script setup>
+import { usePal } from 'pagepal/vue';
+import { analytics } from 'pagepal/analytics';
+
+const pal = usePal({ requests: true, plugins: [analytics({ endpoint: '/api/ux' })] });
+
+async function save() {
+  const res = await fetch('/api/save', { method: 'POST' });
+  pal.value?.react(res.ok ? 'cheer' : 'wince');
+}
+</script>
+```
+
+Options are read once, on mount. To share one pal across components, create it in your root component and `provide` it.
+
+## Nuxt
+
+pagepal only runs in the browser. Create it in a client-only plugin (`plugins/pagepal.client.ts`) or inside `<ClientOnly>`.

@@ -1,0 +1,35 @@
+---
+// Replaces Starlight's SocialIcons slot in the docs header with site navigation.
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+
+const links = [
+  { label: 'Playground', href: '/playground/' },
+  { label: 'Analytics demo', href: '/analytics/' },
+];
+---
+
+<nav class="header-links" aria-label="Site">
+  {links.map((link) => <a href={link.href}>{link.label}</a>)}
+</nav>
+<Default />
+
+<style>
+  .header-links {
+    display: none;
+    gap: 1rem;
+  }
+  @media (min-width: 72rem) {
+    .header-links {
+      display: flex;
+    }
+  }
+  a {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: var(--sl-text-sm);
+  }
+  a:hover {
+    color: var(--sl-color-white);
+  }
+</style>

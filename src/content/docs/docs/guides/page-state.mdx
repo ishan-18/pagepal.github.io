@@ -1,0 +1,70 @@
+---
+title: Page state
+description: Scrolling, connectivity, dark mode, idling, passwords, copying, coming back, and page errors.
+---
+
+These watchers are on by default with `createPal()`, except page errors. Each accepts `false` to turn it off.
+
+## Fast scrolling → `dizzy`
+
+Triggered when the average scroll speed over the last 300 ms passes the threshold (px per ms). It works for the page and for any scrollable container, and needs at least two movements, so jumping to an anchor doesn't count.
+
+```ts
+createPal({ scroll: { threshold: 2 } });   // 600px in 300ms
+```
+
+## Offline → `sad`
+
+Sad while `navigator.onLine` is false, then a `cheer` when the connection comes back. Emits `connection` events with `{ online, offlineMs? }`.
+
+```ts
+createPal({ network: false });
+```
+
+## Dark mode → `sleepy`
+
+Dark mode is detected from common theme markers on `<html>` or `<body>`: `data-theme`, `data-color-scheme`, `data-bs-theme`, `data-mode`, `.dark`/`.light` classes, and an inline `color-scheme`. It falls back to `prefers-color-scheme`. Changes are picked up live.
+
+```ts
+createPal({ darkMode: { detect: () => document.body.classList.contains('night') } });
+```
+
+The detector is exported as `isDarkMode(document, window)` if you need it elsewhere.
+
+## Idle → `dozing`
+
+After 30 seconds without pointer, keyboard, wheel, touch or scroll activity, it dozes off. The next activity, or returning to the tab, wakes it.
+
+```ts
+createPal({ idle: { timeout: 60_000 } });
+```
+
+## Password fields → `shy`
+
+It covers its eyes while a password field has focus. If the page offers "show password" (switching the input to `type="text"`), it peeks. A wrong-password wince still shows over it.
+
+```ts
+createPal({ password: false });
+```
+
+## Copying → `wink`
+
+A wink when the user copies text with the keyboard or the context menu. Clipboard API calls from scripts don't fire the copy event.
+
+## Coming back → `cheer`
+
+When the tab becomes visible again after being hidden for at least 30 seconds.
+
+```ts
+createPal({ welcomeBack: { after: 120_000 } });
+```
+
+## Page errors → `wince` (opt-in)
+
+Uncaught errors and unhandled promise rejections. Useful in development, off by default:
+
+```ts
+createPal({ errors: import.meta.env.DEV });
+```
+
+This only affects the mascot. To *record* errors, use the analytics plugin's opt-in `js_error` event: see [privacy](/docs/analytics/privacy/).

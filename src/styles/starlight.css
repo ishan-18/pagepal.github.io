@@ -1,0 +1,88 @@
+/* Starlight theming: pagepal purple accents and rounded display headings. */
+:root {
+  --sl-color-accent-low: #2a2248;
+  --sl-color-accent: #8b72ff;
+  --sl-color-accent-high: #d9d0ff;
+  --sl-font: var(--site-font-body);
+  --sl-font-mono: var(--site-font-mono);
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e6e0ff;
+  --sl-color-accent: #6147d6;
+  --sl-color-accent-high: #2e1f7a;
+}
+
+h1,
+.sl-markdown-content :is(h2, h3) {
+  font-family: var(--site-font-display);
+  letter-spacing: -0.01em;
+}
+
+.sl-markdown-content h2 {
+  font-weight: 800;
+}
+
+/* Live examples embedded in docs pages. */
+.demo-box {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  background: var(--sl-color-bg-nav);
+}
+
+.demo-box > :first-child {
+  margin-top: 0;
+}
+
+.demo-box .demo-hint {
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-sm);
+  margin: 0 0 0.75rem;
+}
+
+.demo-box form,
+.demo-box .demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+}
+
+.demo-box input {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-4);
+  background: var(--sl-color-bg);
+  color: var(--sl-color-text);
+  min-width: 0;
+}
+
+.demo-box input[aria-invalid='true'] {
+  border-color: var(--sl-color-red);
+}
+
+.demo-box button {
+  font: inherit;
+  font-size: var(--sl-text-sm);
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-4);
+  background: var(--sl-color-bg);
+  color: var(--sl-color-text);
+  cursor: pointer;
+}
+
+.demo-box button.primary {
+  background: var(--sl-color-accent);
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-black);
+}
+
+.demo-box .demo-mood {
+  font-family: var(--site-font-mono);
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-2);
+}

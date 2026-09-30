@@ -1,0 +1,112 @@
+---
+import { SITE } from '../site';
+
+const groups = [
+  {
+    title: 'Learn',
+    links: [
+      { label: 'Introduction', href: '/docs/' },
+      { label: 'Quick start', href: '/docs/quick-start/' },
+      { label: 'Guides', href: '/docs/guides/moods/' },
+      { label: 'API reference', href: '/docs/reference/api/' },
+    ],
+  },
+  {
+    title: 'Analytics',
+    links: [
+      { label: 'Overview', href: '/docs/analytics/' },
+      { label: 'Privacy', href: '/docs/analytics/privacy/' },
+      { label: 'Live demo', href: '/analytics/' },
+    ],
+  },
+  {
+    title: 'More',
+    links: [
+      { label: 'Playground', href: '/playground/' },
+      { label: 'Changelog', href: '/docs/changelog/' },
+      { label: 'FAQ', href: '/docs/faq/' },
+      ...(SITE.githubUrl ? [{ label: 'GitHub', href: SITE.githubUrl }] : []),
+    ],
+  },
+];
+---
+
+<footer class="site-footer">
+  <div class="container inner">
+    <div class="about">
+      <p class="name">pagepal</p>
+      <p class="muted">{SITE.tagline}</p>
+      <p class="muted small">MIT licensed.</p>
+      <button type="button" class="btn small" data-pal-restore hidden>Bring the pal back</button>
+    </div>
+    {
+      groups.map((group) => (
+        <nav aria-label={group.title}>
+          <p class="group">{group.title}</p>
+          <ul>
+            {group.links.map((link) => (
+              <li>
+                <a href={link.href}>{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--site-border);
+    background: var(--site-bg-alt);
+    padding: 48px 0 64px;
+  }
+  .inner {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+    gap: 28px;
+  }
+  @media (max-width: 760px) {
+    .inner {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .about {
+      grid-column: 1 / -1;
+    }
+  }
+  .about {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    justify-items: start;
+  }
+  .name {
+    font: 850 1.2rem/1 var(--site-font-display);
+  }
+  .small {
+    font-size: 0.85rem;
+  }
+  .group {
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--site-muted);
+    margin-bottom: 10px;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  a {
+    color: var(--site-text-2);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--site-accent);
+  }
+</style>

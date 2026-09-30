@@ -1,0 +1,55 @@
+---
+title: Debugging
+description: Find out why the pal shows a mood with the debug panel, events and signals.
+---
+
+## The debug panel
+
+"Why is it sad?" The debug panel answers it. It shows the current mood, every active signal with its priority and time left (the winner highlighted), and recent events.
+
+```ts
+import { debugPanel } from 'pagepal/debug';
+
+if (import.meta.env.DEV) pal.use(debugPanel());
+```
+
+<div class="demo-box">
+  <p class="demo-hint">Open it on this page, then try the other buttons.</p>
+  <div class="demo-row">
+    <button type="button" data-pal-debug>Toggle debug panel</button>
+    <button type="button" data-pal-fetch="/demo-api/slow">Slow request</button>
+    <button type="button" data-pal-react="cheer">Cheer</button>
+  </div>
+</div>
+
+It sits in the corner opposite the pal. Pass `debugPanel({ corner: 'top-left' })` to choose a corner. It's a plugin, so `pal.use()` returns a function that removes it.
+
+## Listening to events
+
+```ts
+pal.on('change', (mood, previous) => console.log(`${previous} → ${mood}`));
+pal.on('request', console.log);
+pal.on('frustration', console.log);
+```
+
+## Inspecting signals
+
+From a plugin, `signals()` returns every active signal, highest priority first:
+
+```ts
+pal.use(({ signals }) => {
+  console.table(signals());
+  // key               mood      priority  expiresAt
+  // network           sad       70        null
+  // requests#0        waiting   60        null
+});
+```
+
+Built-in signal keys include `network`, `scroll`, `idle`, `password`, `scheme` (dark mode), `form#N`, `requests#N`, `dead-click`, `frustration`, `manual` (from `react()`), `user:<key>` (from `signal()`) and `plugin#N:<key>`.
+
+## Common questions
+
+- **It's always sleepy.** Your page is in dark mode. Use `darkMode: false`, or raise other moods with `priorities`.
+- **It dozes while people read.** Reading without moving the pointer counts as idle. Raise `idle.timeout` or use `idle: false`.
+- **It never shows "waiting".** Requests faster than `delay` (150 ms) don't show it, by design. Check that `requests` is on.
+- **A button is reported as a dead click but it works.** It probably works without changing the page, like a copy button. Add `data-pagepal-ignore`.

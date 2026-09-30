@@ -1,0 +1,87 @@
+---
+title: Moods & priorities
+description: The twelve moods, what triggers each one, and how pagepal decides which to show.
+---
+
+import { MOODS } from '../../../../data/moods';
+import { Aside } from '@astrojs/starlight/components';
+
+pagepal has twelve moods. Each one has a face, a motion and sometimes an effect (confetti, a sweat drop, Zzz).
+
+<div class="mood-table">
+  {MOODS.map((m) => (
+    <div class="mood-row">
+      <span data-display-pal={m.mood} data-size="56" aria-hidden="true" />
+      <code>{m.mood}</code>
+      <span>{m.trigger}</span>
+      <span class="prio">{m.priority}</span>
+    </div>
+  ))}
+</div>
+
+<style>{`
+  .mood-table { display: grid; gap: 2px; margin-top: 1rem; }
+  .mood-row { display: grid; grid-template-columns: 64px 7.5rem 1fr 3rem; align-items: center; gap: .75rem; padding: .25rem 0; border-bottom: 1px solid var(--sl-color-gray-6); }
+  .mood-row .prio { text-align: right; font-variant-numeric: tabular-nums; color: var(--sl-color-gray-3); }
+  @media (max-width: 40rem) { .mood-row { grid-template-columns: 56px 1fr 2.5rem; } .mood-row > span:nth-child(3) { grid-column: 2; grid-row: 2; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); } }
+`}</style>
+
+## Signals, not commands
+
+Several things can be true at once: the user is offline, in dark mode, waiting on a request, and just hit a form error. So watchers never tell the pal *what to show*. Each one raises a **signal** under its own key:
+
+- A signal has a **mood** and, for short reactions, a **duration**. Lasting states (offline, waiting) hold until they're cleared.
+- The pal shows the **highest-priority** active signal. Ties go to the most recent one.
+- When a signal ends, the next one takes over.
+
+So a form error while offline shows a wince for 1.2 seconds, then goes back to sad. A cheer after a successful submit plays over "waiting", then waiting returns if requests are still in flight.
+
+```
+cheer 90 > wink 88 > wince 85 > dizzy 80 > concerned 75 > confused 74
+  > sad 70 > shy 65 > waiting 60 > dozing 40 > sleepy 20 > neutral 0
+```
+
+## Changing priorities
+
+Pass `priorities` to override any of them. For example, to let "sleepy" (dark mode) outrank being offline:
+
+```ts
+createPal({ priorities: { sleepy: 75 } });
+```
+
+## Durations
+
+Short reactions expire on their own. Change how long they last with `durations` (milliseconds):
+
+```ts
+createPal({
+  durations: { cheer: 1800, wince: 1200, dizzy: 1200, wink: 900, concerned: 1800, confused: 1600 },
+});
+```
+
+## Showing a mood yourself
+
+```ts
+pal.react('cheer');            // a transient mood uses its default duration
+pal.react('sad', 5000);        // any mood, for 5 seconds
+pal.react('shy', Infinity);    // hold until cleared
+pal.react(null);               // clear it
+```
+
+`react()` uses a single "manual" signal: calling it again replaces the previous one. For several independent states, use [signals](/docs/advanced/plugins/#signals).
+
+<div class="demo-box">
+  <p class="demo-hint">Try it on this page's pal:</p>
+  <div class="demo-row">
+    <button type="button" data-pal-react="cheer">cheer</button>
+    <button type="button" data-pal-react="dizzy">dizzy</button>
+    <button type="button" data-pal-react="sad">sad</button>
+    <button type="button" data-pal-react="shy">shy</button>
+    <button type="button" data-pal-react="sleepy">sleepy</button>
+    <button type="button" data-pal-react="dozing">dozing</button>
+  </div>
+</div>
+
+<Aside type="note">
+  With `prefers-reduced-motion: reduce`, every animation is switched off, but the expressions still change. The meaning survives; only the motion goes.
+</Aside>

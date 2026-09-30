@@ -1,0 +1,39 @@
+---
+title: Introduction
+description: What pagepal is, what it reacts to, and how the pieces fit together.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+**pagepal** is a small mascot that sits in a corner of your page and reacts to what is actually happening on it. It winces at a form error and looks at the field that caused it. It waits while requests are in flight, covers its eyes while someone types a password, and looks confused when a button does nothing.
+
+Most mascots are decoration. pagepal gives users feedback, and gives you data: the signals that move the mascot also power [first-party UX analytics](/docs/analytics/), such as rage clicks, dead clicks, form errors and abandonment, and failing endpoints, sent only where you choose.
+
+<div class="demo-box">
+  <p class="demo-hint">The pal in the corner of this page is pagepal. Currently: <code data-pal-mood>neutral</code></p>
+  <div class="demo-row">
+    <button type="button" data-pal-react="cheer">Cheer</button>
+    <button type="button" data-pal-react="wince">Wince</button>
+    <button type="button" data-pal-react="confused">Confused</button>
+    <button type="button" data-pal-say="Hi! I watch your page.">Say hi</button>
+  </div>
+</div>
+
+## How it works
+
+pagepal is built from three small ideas:
+
+1. **Watchers** notice things on the page: a form's `invalid` event, a `fetch` in flight, the browser going offline, a click that changes nothing.
+2. Each watcher raises a **signal**, a mood with a priority and sometimes a duration. When several signals are active at once, the [highest priority wins](/docs/guides/moods/), and the pal falls back when it ends.
+3. The pal also emits **events** (`formError`, `request`, `frustration`, …) that you can listen to, or hand to the [analytics plugin](/docs/analytics/).
+
+Everything renders in a Shadow DOM, so your CSS can't break it and its CSS can't leak into your page. It has no dependencies.
+
+## Where to go next
+
+<CardGrid>
+  <LinkCard title="Installation" href="/docs/installation/" description="npm, a script tag, or a web component." />
+  <LinkCard title="Quick start" href="/docs/quick-start/" description="A working pal and your first watched form in five minutes." />
+  <LinkCard title="Analytics" href="/docs/analytics/" description="Turn the same signals into data you own." />
+  <LinkCard title="Playground" href="/playground/" description="Try every option live and copy the code." />
+</CardGrid>

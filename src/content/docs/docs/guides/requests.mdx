@@ -1,0 +1,67 @@
+---
+title: Requests
+description: Wait while fetch and XMLHttpRequest requests are in flight, wince on failures, show upload progress.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+```ts
+createPal({ requests: true });   // at creation
+pal.watchRequests();             // or later; returns an unwatch function
+```
+
+This watches both `fetch` and `XMLHttpRequest` with one shared counter, so libraries built on either (axios uses XHR in the browser) are covered. `watchFetch()` and `watchXHR()` watch just one.
+
+<div class="demo-box">
+  <p class="demo-hint">These call a pretend API on this site. Mood: <code data-pal-mood>neutral</code></p>
+  <div class="demo-row">
+    <button type="button" data-pal-fetch="/demo-api/slow">Slow request (2s)</button>
+    <button type="button" data-pal-fetch="/demo-api/fail">Failing request (502)</button>
+    <button type="button" data-pal-fetch="/demo-api/fast">Fast request</button>
+  </div>
+</div>
+
+## Behavior
+
+- **Waiting:** shown while any watched request is pending, but only after `delay` (150 ms by default). Fast requests never make it flicker.
+- **Wince:** when a request fails, meaning a network error or a response `isError` rejects (by default, status 500 and above).
+- **Not an error:** aborted requests (`AbortController`), and requests cut off because the user is leaving the page. The latter look exactly like network failures, so pagepal waits 100 ms before counting a status-0 failure, and drops it if the page is going away.
+- **Progress ring:** XHR uploads and downloads that report their size and are at least 100 KB get a progress ring around the pal.
+
+## Options
+
+```ts
+pal.watchRequests({
+  delay: 150,
+  filter: (input, init) => !String(input).includes('/analytics'),   // ignore some requests
+  isError: (res) => res.status >= 500,                              // which responses count as failures
+  progress: 100_000,                                                // min bytes for the ring; false turns it off
+});
+```
+
+`filter` receives `fetch`'s arguments. For XHR it receives the URL and `{ method }`. `isError` receives `{ status, ok, url }`; a `Response` also works.
+
+<Aside type="caution">
+  Treating 4xx as errors is usually wrong: a 404 for an optional resource or a 422 validation response is expected. The default only counts server errors.
+</Aside>
+
+## Showing your own progress
+
+For uploads through `fetch`, which has no progress events, or any long task:
+
+```ts
+pal.progress(0.4);   // 0..1
+pal.progress(null);  // hide the ring
+```
+
+## Unwatching
+
+Each `watch*()` call returns a function that restores the original `fetch`/`XMLHttpRequest` methods, unless something else wrapped them after pagepal. In that case pagepal's wrapper stays in place but stops doing anything.
+
+## The `request` event
+
+```ts
+pal.on('request', ({ kind, method, url, status, ok, duration, failed, aborted }) => {});
+```
+
+`kind` is `'fetch'` or `'xhr'`. The [analytics plugin](/docs/analytics/) turns these into `request_error` and `request_slow` events.

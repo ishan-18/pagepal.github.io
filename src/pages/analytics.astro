@@ -1,0 +1,501 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+---
+
+<SiteLayout
+  title="Analytics demo"
+  description="Use a deliberately broken checkout and watch pagepal's analytics record it, live."
+  pal={false}
+>
+  <div class="container page">
+    <header class="page-head">
+      <span class="eyebrow">Analytics demo</span>
+      <h1>Break a checkout, watch the data</h1>
+      <p class="lead">
+        This checkout is broken on purpose. Use it like a frustrated customer: the pal reacts, and the <code>analytics()</code> plugin
+        records what happened. Everything stays in this browser tab; nothing is sent anywhere.
+      </p>
+    </header>
+
+    <p class="notice" id="privacy-notice" hidden>
+      Your browser sends a <strong>Do Not Track</strong> or <strong>Global Privacy Control</strong> signal, so pagepal's analytics
+      is switched off, just as it would be on a real site.
+      <button type="button" class="btn small" id="run-anyway">Run the demo anyway</button>
+    </p>
+
+    <div class="layout">
+      <!-- ============ the broken checkout ============ -->
+      <section class="card shop" aria-labelledby="shop-title">
+        <div class="shop-head">
+          <h2 id="shop-title">Acme checkout</h2>
+          <span class="tag">deliberately broken</span>
+        </div>
+
+        <form id="checkout" class="checkout" aria-describedby="checkout-hint">
+          <p id="checkout-hint" class="muted small">Things to try are marked with 👉</p>
+          <label class="stack">Email <input class="field" type="email" name="email" required autocomplete="off" /></label>
+          <label class="stack"
+            >ZIP code <span class="hint">👉 5 digits; try letters</span>
+            <input class="field" name="zip" required pattern="\d{5}" inputmode="numeric" autocomplete="off" />
+          </label>
+          <label class="stack">Name on card <input class="field" name="cardName" required autocomplete="off" /></label>
+
+          <div class="coupon">
+            <input class="field" name="coupon" placeholder="Coupon code" aria-label="Coupon code" autocomplete="off" />
+            <button type="button" class="btn small" id="apply-coupon">Apply</button>
+            <span class="hint">👉 does nothing</span>
+          </div>
+
+          <div class="row">
+            <button type="button" class="btn small" id="shipping">Get shipping rates</button>
+            <span class="hint">👉 slow (3.5s)</span>
+          </div>
+
+          <div class="help" id="help" role="note">Need help? <span class="hint">👉 looks clickable, isn't</span></div>
+
+          <button class="btn primary pay" id="pay">Pay $49.00</button>
+          <p class="hint center">👉 payment API fails (502); try clicking it fast, too</p>
+        </form>
+
+        <div class="shop-foot">
+          <button type="button" class="btn small" id="leave">Leave the page</button>
+          <span class="muted small">Like closing the tab: records a page summary, and abandonment if you started the form without submitting it.</span>
+        </div>
+      </section>
+
+      <!-- ============ what analytics sees ============ -->
+      <section class="insights" aria-label="What analytics recorded">
+        <div class="kpis">
+          <div class="kpi"><span class="k" data-kpi="events">0</span><span class="l">events</span></div>
+          <div class="kpi"><span class="k" data-kpi="frustration">0</span><span class="l">rage & dead clicks</span></div>
+          <div class="kpi"><span class="k" data-kpi="formErrors">0</span><span class="l">form errors</span></div>
+          <div class="kpi"><span class="k" data-kpi="requests">0</span><span class="l">failing / slow requests</span></div>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Summary</h2>
+            <span class="muted small"><code>ux.summary()</code></span>
+          </div>
+          <div id="summary" class="summary"><p class="empty">Nothing yet. Try the checkout.</p></div>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Event stream</h2>
+            <label class="consent"><input type="checkbox" id="consent" checked /> Consent granted</label>
+          </div>
+          <ol id="stream" class="stream" aria-live="polite"><li class="empty">Waiting for the first event…</li></ol>
+        </div>
+
+        <details class="card panel">
+          <summary><h2>What your endpoint would receive</h2></summary>
+          <p class="muted small">The last batch, exactly as <code>analytics({'{'} endpoint {'}'})</code> would POST it.</p>
+          <pre class="payload"><code id="payload">{`{ "events": [] }`}</code></pre>
+        </details>
+
+        <div class="actions">
+          <button type="button" class="btn small" id="reset">Start over</button>
+          <a class="btn small" href="/docs/analytics/">Read the analytics docs</a>
+        </div>
+      </section>
+    </div>
+  </div>
+</SiteLayout>
+
+<script>
+  import { createPal, type Pal } from 'pagepal';
+  import { analytics, type Analytics, type UXEvent } from 'pagepal/analytics';
+  import { installDemoApi } from '../scripts/demo-api';
+
+  installDemoApi();
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) => {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  };
+
+  let pal: Pal | null = null;
+  let ux: Analytics | null = null;
+  let lastBatch: UXEvent[] = [];
+  let ignorePrivacySignals = false;
+
+  function start() {
+    pal?.destroy(); // closes out the previous view
+    lastBatch = [];
+    ux = analytics({
+      // Nothing leaves the page: the "sink" is this dashboard.
+      send: (batch) => {
+        lastBatch = batch;
+        render();
+      },
+      batchSize: 1,
+      flushInterval: 100,
+      respectPrivacySignals: !ignorePrivacySignals,
+      consent: $<HTMLInputElement>('consent').checked,
+    });
+    pal = createPal({ watch: '#checkout', requests: true, remember: false, idle: false, plugins: [ux] });
+    $('privacy-notice').hidden = ux.active;
+    render();
+  }
+
+  const describe = (e: UXEvent): string => {
+    switch (e.type) {
+      case 'rage_click':
+        return `${e.element} · ${e.clicks} clicks`;
+      case 'dead_click':
+        return e.element;
+      case 'form_error':
+        return `${e.field} · ${e.validity ?? e.source}`;
+      case 'form_submit':
+        return `${e.form} · ${e.success ? 'ok' : 'invalid'} · ${e.errors} errors before`;
+      case 'form_abandon':
+        return `${e.form} · left on ${e.lastField ?? '?'} · ${Math.round((e.progress ?? 0) * 100)}% done`;
+      case 'request_error':
+      case 'request_slow':
+        return `${e.method} ${e.url} · ${e.status} · ${(e.durationMs / 1000).toFixed(1)}s`;
+      case 'page_summary':
+        return `${(e.durationMs / 1000).toFixed(0)}s on page · waited ${(e.waitMs / 1000).toFixed(1)}s`;
+      case 'page_view':
+        return `${e.page} · ${e.viewport}`;
+      default:
+        return '';
+    }
+  };
+
+  function renderSummary() {
+    const box = $('summary');
+    const s = ux!.summary();
+    const blocks: HTMLElement[] = [];
+    const list = (title: string, rows: [string, string][]) => {
+      if (!rows.length) return;
+      const section = el('div', undefined, 'block');
+      section.append(el('h3', title));
+      const ol = el('ol');
+      for (const [main, meta] of rows) {
+        const li = el('li');
+        li.append(el('code', main), el('span', meta, 'meta'));
+        ol.append(li);
+      }
+      section.append(ol);
+      blocks.push(section);
+    };
+    list('Frustration hotspots', s.frustration.map((f) => [f.element, `${f.rageClicks} rage · ${f.deadClicks} dead`]));
+    list('Form errors by field', s.formErrors.map((f) => [f.field, `${f.validity ?? 'aria-invalid'} × ${f.count}`]));
+    list(
+      'Forms',
+      s.forms.map((f) => [f.form, `${f.successes}/${f.submits} ok · ${f.abandons} abandoned${f.topAbandonField ? ` on ${f.topAbandonField}` : ''}`]),
+    );
+    list('Failing & slow requests', s.requests.map((r) => [r.endpoint, `${r.errors} errors · ${r.slow} slow`]));
+    box.replaceChildren(...(blocks.length ? blocks : [el('p', 'Nothing yet. Try the checkout.', 'empty')]));
+
+    const set = (key: string, value: number) => (document.querySelector(`[data-kpi="${key}"]`)!.textContent = String(value));
+    set('events', ux!.events().length);
+    set('frustration', (s.counts.rage_click ?? 0) + (s.counts.dead_click ?? 0));
+    set('formErrors', s.counts.form_error ?? 0);
+    set('requests', (s.counts.request_error ?? 0) + (s.counts.request_slow ?? 0));
+  }
+
+  function renderStream() {
+    const events = [...ux!.events()].reverse().slice(0, 30);
+    const stream = $('stream');
+    if (!events.length) {
+      stream.replaceChildren(
+        el('li', ux!.active ? 'Waiting for the first event…' : 'Analytics is off for this view.', 'empty'),
+      );
+      return;
+    }
+    stream.replaceChildren(
+      ...events.map((e) => {
+        const li = el('li');
+        li.append(el('span', e.type, `type t-${e.type}`), el('span', describe(e), 'what'), el('time', new Date(e.ts).toLocaleTimeString()));
+        return li;
+      }),
+    );
+  }
+
+  function render() {
+    if (!ux) return;
+    renderSummary();
+    renderStream();
+    $('payload').textContent = JSON.stringify({ events: lastBatch }, null, 2);
+  }
+
+  // ----- the broken checkout -----
+  const checkout = $<HTMLFormElement>('checkout');
+  checkout.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!checkout.checkValidity()) return; // invalid fields: the pal already winced
+    try {
+      await fetch('/demo-api/fail', { method: 'POST' }); // the payment API is down
+    } catch {}
+  });
+  $('apply-coupon').addEventListener('click', () => {}); // does nothing, on purpose
+  $('shipping').addEventListener('click', () => void fetch('/demo-api/rates').catch(() => {}));
+  $('leave').addEventListener('click', () => {
+    const before = ux?.events().length ?? 0;
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }));
+    const abandoned = ux?.events().slice(before).some((e) => e.type === 'form_abandon');
+    pal?.say(abandoned ? 'Bye! Abandoned form recorded.' : 'Bye! Page summary recorded.', 2200);
+    render();
+  });
+  $('reset').addEventListener('click', () => {
+    checkout.reset();
+    start();
+  });
+  $<HTMLInputElement>('consent').addEventListener('change', (event) => {
+    ux?.consent((event.target as HTMLInputElement).checked);
+    render();
+  });
+  $('run-anyway').addEventListener('click', () => {
+    ignorePrivacySignals = true;
+    start();
+  });
+
+  start();
+</script>
+
+<style>
+  .page {
+    padding-top: 40px;
+    padding-bottom: 80px;
+  }
+  .page-head {
+    margin-bottom: 24px;
+    max-width: 780px;
+  }
+  .notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--site-border);
+    background: var(--site-accent-soft);
+    margin-bottom: 20px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 960px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .shop {
+    display: grid;
+    gap: 16px;
+  }
+  .shop-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .shop-head h2,
+  .panel h2 {
+    font-size: 1.15rem;
+  }
+  .tag {
+    font: 700 0.72rem/1 var(--site-font-body);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--site-accent-soft);
+    color: var(--site-accent);
+  }
+  .checkout {
+    display: grid;
+    gap: 14px;
+  }
+  .hint {
+    font-size: 0.8rem;
+    color: var(--site-muted);
+  }
+  .center {
+    text-align: center;
+  }
+  .small {
+    font-size: 0.85rem;
+  }
+  .coupon,
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .coupon .field {
+    flex: 1 1 140px;
+    width: auto;
+  }
+  .help {
+    cursor: pointer;
+    color: var(--site-accent);
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .pay {
+    width: 100%;
+    font-size: 1rem;
+  }
+  .shop-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--site-border);
+  }
+  .insights {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .kpi {
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: grid;
+  }
+  .k {
+    font: 800 1.8rem/1.1 var(--site-font-display);
+    font-variant-numeric: tabular-nums;
+  }
+  .l {
+    color: var(--site-muted);
+    font-size: 0.8rem;
+  }
+  .panel {
+    padding: 18px;
+  }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  details.panel summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  details.panel summary h2 {
+    display: inline;
+  }
+  details.panel summary::before {
+    content: '▸ ';
+    color: var(--site-muted);
+  }
+  details[open].panel summary::before {
+    content: '▾ ';
+  }
+  .consent {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .summary :global(.block + .block) {
+    margin-top: 14px;
+  }
+  .summary :global(h3) {
+    font-size: 0.92rem;
+    margin-bottom: 6px;
+  }
+  .summary :global(ol) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .summary :global(li) {
+    display: grid;
+    gap: 1px;
+  }
+  .summary :global(code),
+  .stream :global(.what) {
+    font: 0.8rem/1.4 var(--site-font-mono);
+    overflow-wrap: anywhere;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  .summary :global(.meta) {
+    color: var(--site-muted);
+    font-size: 0.8rem;
+  }
+  .stream {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+    max-height: 360px;
+    overflow: auto;
+  }
+  .stream :global(li) {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--site-border);
+  }
+  .stream :global(.type) {
+    font: 700 0.75rem/1.2 var(--site-font-mono);
+    color: var(--site-accent);
+  }
+  .stream :global(time) {
+    color: var(--site-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  .stream :global(.empty),
+  .summary :global(.empty) {
+    color: var(--site-muted);
+    font-size: 0.9rem;
+    display: block;
+    border: 0;
+  }
+  @media (max-width: 520px) {
+    .stream :global(li) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .stream :global(.what) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+  .payload {
+    margin: 10px 0 0;
+    max-height: 320px;
+    overflow: auto;
+    padding: 14px;
+    border-radius: 10px;
+    background: var(--site-code-bg);
+    border: 1px solid var(--site-border);
+    font: 0.78rem/1.5 var(--site-font-mono);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>

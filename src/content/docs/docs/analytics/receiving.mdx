@@ -1,0 +1,115 @@
+---
+title: Receiving events
+description: Server code to accept pagepal analytics batches in Express, Next.js, Cloudflare Workers and more.
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+Batches arrive as a `POST` with a **`text/plain`** body containing `{"events": [...]}`. Read the body as text, parse it as JSON, validate it, and store it. Reply `204 No Content`: the browser doesn't read the response.
+
+<Tabs>
+  <TabItem label="Express">
+    ```ts
+    import express from 'express';
+
+    const app = express();
+
+    app.post('/api/ux', express.text({ type: '*/*', limit: '100kb' }), async (req, res) => {
+      try {
+        const { events } = JSON.parse(req.body);
+        if (!Array.isArray(events)) return res.sendStatus(400);
+        await db.insertMany('ux_events', events.slice(0, 100));
+        res.sendStatus(204);
+      } catch {
+        res.sendStatus(400);
+      }
+    });
+    ```
+  </TabItem>
+  <TabItem label="Next.js (App Router)">
+    ```ts
+    // app/api/ux/route.ts
+    export async function POST(request: Request) {
+      try {
+        const { events } = JSON.parse(await request.text());
+        if (!Array.isArray(events)) return new Response(null, { status: 400 });
+        await db.insertMany('ux_events', events.slice(0, 100));
+        return new Response(null, { status: 204 });
+      } catch {
+        return new Response(null, { status: 400 });
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Cloudflare Workers">
+    ```ts
+    export default {
+      async fetch(request: Request, env: Env): Promise<Response> {
+        if (request.method !== 'POST') return new Response(null, { status: 405 });
+        try {
+          const { events } = JSON.parse(await request.text());
+          if (!Array.isArray(events)) return new Response(null, { status: 400 });
+          await env.UX_EVENTS.send(events.slice(0, 100)); // a Queue, then batch into D1 / R2
+          return new Response(null, { status: 204 });
+        } catch {
+          return new Response(null, { status: 400 });
+        }
+      },
+    };
+    ```
+  </TabItem>
+  <TabItem label="Node (no framework)">
+    ```ts
+    import { createServer } from 'node:http';
+
+    createServer((req, res) => {
+      if (req.method !== 'POST' || req.url !== '/api/ux') return res.writeHead(404).end();
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+        if (body.length > 100_000) req.destroy();
+      });
+      req.on('end', () => {
+        try {
+          const { events } = JSON.parse(body);
+          store(events);
+          res.writeHead(204).end();
+        } catch {
+          res.writeHead(400).end();
+        }
+      });
+    }).listen(3000);
+    ```
+  </TabItem>
+</Tabs>
+
+<Aside type="caution">
+  Anyone can POST to a public endpoint. Treat the events as untrusted input: cap the body size and the number of events, check `type` against the known list, and don't render the strings as HTML in your dashboard without escaping them.
+</Aside>
+
+## Cross-origin endpoints
+
+Because the body is `text/plain` and beacons send no custom headers, a cross-origin endpoint needs no CORS preflight. The browser still sends the request; it just can't read the response, and pagepal doesn't need to.
+
+## Storing events
+
+One row per event works well. Suggested columns:
+
+| Column | Type |
+| --- | --- |
+| `type` | text, indexed |
+| `ts` | timestamp |
+| `page` | text, indexed |
+| `view` | text |
+| `data` | JSON (everything else) |
+
+Then feed rows back to [`summarize()`](/docs/analytics/dashboards/) or query them directly. For example, the top dead clicks this week:
+
+```sql
+select data->>'element' as element, page, count(*) as clicks
+from ux_events
+where type = 'dead_click' and ts > now() - interval '7 days'
+group by 1, 2
+order by clicks desc
+limit 10;
+```

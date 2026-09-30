@@ -1,0 +1,29 @@
+---
+import { Code } from 'astro:components';
+
+interface Props {
+  code: string;
+  lang?: string;
+}
+
+const { code, lang = 'ts' } = Astro.props;
+---
+
+<div class="code">
+  <Code code={code.trim()} lang={lang as never} themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor="light" />
+  <button class="copy-btn" type="button" data-copy={code.trim()}>Copy</button>
+</div>
+
+<script>
+  document.addEventListener('click', async (event) => {
+    const button = (event.target as Element | null)?.closest<HTMLButtonElement>('.copy-btn');
+    if (!button?.dataset.copy) return;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy);
+      button.textContent = 'Copied';
+    } catch {
+      button.textContent = 'Press Ctrl+C';
+    }
+    setTimeout(() => (button.textContent = 'Copy'), 1600);
+  });
+</script>

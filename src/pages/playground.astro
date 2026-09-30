@@ -1,0 +1,345 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+
+const moods = ['cheer', 'wince', 'dizzy', 'waiting', 'sad', 'sleepy', 'dozing', 'shy', 'concerned', 'confused', 'wink'];
+---
+
+<SiteLayout title="Playground" description="Try every pagepal option live and copy the code." pal={false}>
+  <div class="container page">
+    <header class="page-head">
+      <span class="eyebrow">Playground</span>
+      <h1>Build your pal</h1>
+      <p class="lead">Change the options: the pal in the corner and the code update live.</p>
+    </header>
+
+    <div class="layout">
+      <form class="card options" id="options" aria-label="Pal options">
+        <fieldset>
+          <legend>Look</legend>
+          <label>Character
+            <select name="character"><option>blob</option><option>cat</option><option>ghost</option></select>
+          </label>
+          <label>Position
+            <select name="position">
+              <option>bottom-right</option><option>bottom-left</option><option>top-right</option><option>top-left</option>
+            </select>
+          </label>
+          <label>Size <span class="range"><input type="range" name="size" min="40" max="160" step="4" value="72" /><output name="sizeOut">72</output></span></label>
+          <label class="check"><input type="checkbox" name="useColor" /> Custom color</label>
+          <label>Color <input type="color" name="color" value="#e8590c" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Watch</legend>
+          <label class="check"><input type="checkbox" name="watch" checked /> The form on this page</label>
+          <label class="check"><input type="checkbox" name="requests" checked /> Requests</label>
+          <label class="check"><input type="checkbox" name="frustration" checked /> Rage clicks</label>
+          <label class="check"><input type="checkbox" name="deadClicks" checked /> Dead clicks</label>
+          <label class="check"><input type="checkbox" name="password" checked /> Password fields</label>
+          <label class="check"><input type="checkbox" name="darkMode" checked /> Dark mode</label>
+          <label class="check"><input type="checkbox" name="idle" checked /> Idle</label>
+          <label class="check"><input type="checkbox" name="avoid" checked /> Avoid overlaps</label>
+          <label class="check"><input type="checkbox" name="errors" /> Page errors</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Behavior</legend>
+          <label class="check"><input type="checkbox" name="interactive" checked /> Interactive (poke, drag, dismiss)</label>
+          <label class="check"><input type="checkbox" name="analytics" /> Analytics plugin</label>
+          <label class="check"><input type="checkbox" name="debug" /> Debug panel</label>
+        </fieldset>
+      </form>
+
+      <div class="right">
+        <section class="card">
+          <h2 class="h">Try it</h2>
+          <p class="muted small">Mood: <span class="mood-pill" data-mood-label>neutral</span></p>
+          <div class="buttons" id="moods">
+            {moods.map((m) => <button type="button" class="btn small" data-react={m}>{m}</button>)}
+            <button type="button" class="btn small" data-progress-demo>progress</button>
+            <button type="button" class="btn small" data-say>say hi</button>
+          </div>
+          <div class="sandbox">
+            <form id="sandbox-form" class="sandbox-form" novalidate>
+              <input class="field" type="email" name="email" required placeholder="Email" aria-label="Email" />
+              <input class="field" type="password" name="password" placeholder="Password" aria-label="Password" />
+              <button class="btn small primary">Submit</button>
+            </form>
+            <div class="buttons">
+              <button type="button" class="btn small" data-fetch="/demo-api/slow">Slow request</button>
+              <button type="button" class="btn small" data-fetch="/demo-api/fail">Failing request</button>
+              <button type="button" class="btn small" data-broken>Broken button</button>
+              <button type="button" class="btn small" data-theme-flip>Flip dark mode</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="code-head">
+            <h2 class="h">Your code</h2>
+            <div role="tablist" aria-label="Code format" class="formats">
+              <button type="button" role="tab" aria-selected="true" data-format="js">JavaScript</button>
+              <button type="button" role="tab" aria-selected="false" data-format="html">HTML</button>
+              <button type="button" role="tab" aria-selected="false" data-format="react">React</button>
+              <button type="button" role="tab" aria-selected="false" data-format="vue">Vue</button>
+            </div>
+          </div>
+          <div class="code">
+            <pre><code id="code"></code></pre>
+            <button type="button" class="copy-btn" id="copy-code">Copy</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</SiteLayout>
+
+<script>
+  import { createPal, type Mood, type Pal, type PalOptions } from 'pagepal';
+  import { analytics } from 'pagepal/analytics';
+  import { debugPanel } from 'pagepal/debug';
+  import { installDemoApi } from '../scripts/demo-api';
+  import { buildCode, type Choices, type Format } from '../scripts/playground-code';
+
+  installDemoApi();
+  const form = document.getElementById('options') as HTMLFormElement;
+  const codeEl = document.getElementById('code')!;
+  let pal: Pal | null = null;
+  let format: Format = 'js';
+
+  const read = (): Choices => {
+    const f = form.elements as unknown as Record<string, HTMLInputElement>;
+    return {
+      character: (f.character as unknown as HTMLSelectElement).value as Choices['character'],
+      position: (f.position as unknown as HTMLSelectElement).value as Choices['position'],
+      size: Number(f.size!.value),
+      color: f.useColor!.checked ? f.color!.value : undefined,
+      watch: f.watch!.checked,
+      requests: f.requests!.checked,
+      frustration: f.frustration!.checked,
+      deadClicks: f.deadClicks!.checked,
+      password: f.password!.checked,
+      darkMode: f.darkMode!.checked,
+      idle: f.idle!.checked,
+      avoid: f.avoid!.checked,
+      errors: f.errors!.checked,
+      interactive: f.interactive!.checked,
+      analytics: f.analytics!.checked,
+      debug: f.debug!.checked,
+    };
+  };
+
+  const apply = () => {
+    const c = read();
+    (form.elements.namedItem('sizeOut') as HTMLOutputElement).value = String(c.size);
+    pal?.destroy();
+    const options: PalOptions = {
+      character: c.character,
+      position: c.position,
+      size: c.size,
+      color: c.color,
+      watch: c.watch ? '#sandbox-form' : undefined,
+      requests: c.requests,
+      frustration: c.frustration,
+      deadClicks: c.deadClicks,
+      password: c.password,
+      darkMode: c.darkMode,
+      idle: c.idle,
+      avoid: c.avoid,
+      errors: c.errors,
+      interactive: c.interactive,
+      remember: false,
+      plugins: [...(c.analytics ? [analytics({ send: () => {} })] : []), ...(c.debug ? [debugPanel()] : [])],
+    };
+    pal = createPal(options);
+    pal.on('change', (mood) => document.querySelectorAll('[data-mood-label]').forEach((el) => (el.textContent = mood)));
+    document.querySelectorAll('[data-mood-label]').forEach((el) => (el.textContent = pal!.mood));
+    codeEl.textContent = buildCode(c, format);
+  };
+
+  form.addEventListener('input', apply);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  document.getElementById('sandbox-form')!.addEventListener('submit', (e) => e.preventDefault());
+
+  document.querySelectorAll<HTMLButtonElement>('[data-format]').forEach((tab) =>
+    tab.addEventListener('click', () => {
+      format = tab.dataset.format as Format;
+      document.querySelectorAll('[data-format]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+      codeEl.textContent = buildCode(read(), format);
+    }),
+  );
+
+  document.getElementById('copy-code')!.addEventListener('click', async (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent ?? '');
+      button.textContent = 'Copied';
+    } catch {
+      button.textContent = 'Press Ctrl+C';
+    }
+    setTimeout(() => (button.textContent = 'Copy'), 1600);
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-react]').forEach((b) =>
+    b.addEventListener('click', () => pal?.react(b.dataset.react as Mood, 2500)),
+  );
+  document.querySelector('[data-say]')!.addEventListener('click', () => pal?.say('Hi! Change my options on the left.'));
+  document.querySelector('[data-progress-demo]')!.addEventListener('click', () => {
+    let value = 0;
+    const timer = setInterval(() => {
+      value += 0.1;
+      pal?.progress(value >= 1 ? null : value);
+      if (value >= 1) clearInterval(timer);
+    }, 200);
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-fetch]').forEach((b) =>
+    b.addEventListener('click', () => void fetch(b.dataset.fetch!).catch(() => {})),
+  );
+  document.querySelector('[data-broken]')!.addEventListener('click', () => {});
+  document.querySelector('[data-theme-flip]')!.addEventListener('click', () => {
+    const root = document.documentElement;
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+
+  apply();
+</script>
+
+<style>
+  .page {
+    padding-top: 40px;
+    padding-bottom: 80px;
+  }
+  .page-head {
+    margin-bottom: 28px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .options {
+    display: grid;
+    gap: 18px;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 8px;
+  }
+  legend {
+    font: 700 0.78rem/1 var(--site-font-body);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--site-muted);
+    margin-bottom: 8px;
+  }
+  .options label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.93rem;
+  }
+  .options label.check {
+    justify-content: flex-start;
+  }
+  select {
+    font: inherit;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--site-border);
+    background: var(--site-bg);
+    color: var(--site-text);
+  }
+  .range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .range input {
+    width: 120px;
+  }
+  input[type='color'] {
+    width: 44px;
+    height: 30px;
+    border: 1px solid var(--site-border);
+    border-radius: 6px;
+    background: none;
+    padding: 2px;
+  }
+  .right {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+  }
+  .h {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .small {
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .sandbox {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--site-border);
+    display: grid;
+    gap: 10px;
+  }
+  .sandbox-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sandbox-form .field {
+    flex: 1 1 150px;
+  }
+  .code-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .formats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .formats button {
+    font: 600 0.82rem/1 var(--site-font-body);
+    padding: 7px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--site-border);
+    background: var(--site-surface);
+    color: var(--site-text-2);
+    cursor: pointer;
+  }
+  .formats button[aria-selected='true'] {
+    background: var(--site-accent);
+    border-color: var(--site-accent);
+    color: var(--site-accent-ink);
+  }
+  pre {
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font: 0.86rem/1.6 var(--site-font-mono);
+    white-space: pre;
+  }
+</style>

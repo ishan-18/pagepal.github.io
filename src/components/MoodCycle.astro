@@ -1,0 +1,101 @@
+---
+import { MOODS } from '../data/moods';
+
+const cycle = MOODS.filter((m) => m.mood !== 'neutral');
+---
+
+<figure class="mood-cycle" data-mood-cycle data-moods={JSON.stringify(cycle)}>
+  <div class="stage">
+    <span class="halo" aria-hidden="true"></span>
+    <span data-display-pal={cycle[0]!.mood} data-size="220" aria-hidden="true"></span>
+  </div>
+  <figcaption>
+    <span class="mood-pill" data-cycle-mood>{cycle[0]!.mood}</span>
+    <span class="trigger" data-cycle-trigger>{cycle[0]!.trigger}</span>
+    <button type="button" class="pause" data-cycle-pause aria-pressed="false">Pause</button>
+  </figcaption>
+</figure>
+
+<script>
+  import type { Mood, PalCore } from 'pagepal/core';
+  import { mountDisplayPals } from '../scripts/display-pal';
+
+  mountDisplayPals();
+  document.querySelectorAll<HTMLElement>('[data-mood-cycle]').forEach((figure) => {
+    const moods: { mood: Mood; trigger: string }[] = JSON.parse(figure.dataset.moods!);
+    const host = figure.querySelector<HTMLElement & { pal?: PalCore }>('[data-display-pal]')!;
+    const moodEl = figure.querySelector('[data-cycle-mood]')!;
+    const triggerEl = figure.querySelector('[data-cycle-trigger]')!;
+    const pause = figure.querySelector<HTMLButtonElement>('[data-cycle-pause]')!;
+    let index = 0;
+    let paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const show = (i: number) => {
+      const { mood, trigger } = moods[i]!;
+      host.pal?.react(mood, Infinity);
+      moodEl.textContent = mood;
+      triggerEl.textContent = trigger;
+    };
+    const syncButton = () => {
+      pause.setAttribute('aria-pressed', String(paused));
+      pause.textContent = paused ? 'Play' : 'Pause';
+    };
+    pause.addEventListener('click', () => {
+      paused = !paused;
+      syncButton();
+    });
+    syncButton();
+    setInterval(() => {
+      if (paused || document.hidden) return;
+      index = (index + 1) % moods.length;
+      show(index);
+    }, 2200);
+  });
+</script>
+
+<style>
+  .mood-cycle {
+    margin: 0;
+    display: grid;
+    justify-items: center;
+    gap: 18px;
+  }
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(340px, 80vw);
+    aspect-ratio: 1;
+  }
+  .halo {
+    position: absolute;
+    inset: 6%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 45%, var(--site-accent-soft), transparent 70%);
+  }
+  .stage > [data-display-pal] {
+    position: relative;
+  }
+  figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-height: 34px;
+    text-align: center;
+  }
+  .trigger {
+    color: var(--site-text-2);
+    font-size: 0.95rem;
+  }
+  .pause {
+    font: 600 0.78rem/1 var(--site-font-body);
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--site-border);
+    background: transparent;
+    color: var(--site-muted);
+    cursor: pointer;
+  }
+</style>

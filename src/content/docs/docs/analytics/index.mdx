@@ -1,0 +1,54 @@
+---
+title: Analytics overview
+description: First-party UX analytics from the signals pagepal already watches.
+sidebar:
+  label: Overview
+---
+
+import { summarize } from 'pagepal/analytics';
+import { SAMPLE_EVENTS } from '../../../../data/sample-events';
+import SummaryPreview from '../../../../components/SummaryPreview.astro';
+import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+
+export const summary = summarize(SAMPLE_EVENTS);
+
+The signals that make the mascot wince or look confused are the ones a product team wants to see in a dashboard: which buttons people rage-click, which fields fail validation, where they give up on a form, which endpoints fail. The **analytics plugin** records them and sends them where you choose.
+
+```ts
+import { createPal } from 'pagepal';
+import { analytics } from 'pagepal/analytics';
+
+const ux = analytics({ endpoint: '/api/ux' });
+createPal({ watch: 'form#checkout', requests: true, plugins: [ux] });
+```
+
+That's the whole setup. Batches are POSTed to `/api/ux` with `navigator.sendBeacon`, which survives the page closing.
+
+## What you get
+
+<div class="not-content" style="margin: 1.5rem 0">
+  <SummaryPreview summary={summary} caption="Sample data: a made-up week of checkout traffic, run through summarize()." />
+</div>
+
+- **Rage and dead clicks**, by element: the buttons that don't work, or don't look like they work.
+- **Form errors** by field and reason (`patternMismatch` on the zip code), **submits**, and **abandonment**, with the field people were on when they left.
+- **Failing and slow requests**, grouped by method and sanitized URL, and time spent waiting per page view.
+- **Offline time**, and **how people feel about the mascot**: pokes and dismissals.
+
+## Principles
+
+- **Yours.** There is no pagepal server. Nothing is sent unless you configure an `endpoint` or a `send` function.
+- **Private by default.** No typed values, masked labels, sanitized URLs, no identifiers that link page views, and it switches off for Do Not Track and Global Privacy Control. [Details →](/docs/analytics/privacy/)
+- **Plays well with your stack.** Send to your own API, or to GA4, PostHog, Segment or Plausible. [Delivery →](/docs/analytics/delivery/)
+- **Small.** About 3.5 KB gzipped, and only in bundles that import it.
+
+<Aside type="tip">
+  Try it live: the [analytics demo](/analytics/) records your clicks on a broken checkout page and shows the dashboard updating as you go.
+</Aside>
+
+<CardGrid>
+  <LinkCard title="Events" href="/docs/analytics/events/" description="Every event type and its fields." />
+  <LinkCard title="Privacy" href="/docs/analytics/privacy/" description="What is and isn't recorded, consent, redaction." />
+  <LinkCard title="Receiving events" href="/docs/analytics/receiving/" description="Server examples: Express, Next.js, Cloudflare Workers." />
+  <LinkCard title="Dashboards" href="/docs/analytics/dashboards/" description="summarize() and building your own reports." />
+</CardGrid>

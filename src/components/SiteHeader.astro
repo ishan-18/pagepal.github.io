@@ -1,0 +1,180 @@
+---
+import logo from '../assets/logo.svg?raw';
+import { NAV, SITE } from '../site';
+
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/docs/' ? path.startsWith('/docs/') && !path.startsWith('/docs/changelog') : path.startsWith(href));
+---
+
+<header class="site-header">
+  <div class="container bar">
+    <a class="brand" href="/" aria-label="pagepal home">
+      <span class="logo" set:html={logo} />
+      <span>pagepal</span>
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      <ul id="site-menu">
+        {
+          NAV.map((item) => (
+            <li>
+              <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+        {SITE.githubUrl && (
+          <li>
+            <a href={SITE.githubUrl}>GitHub</a>
+          </li>
+        )}
+      </ul>
+    </nav>
+
+    <div class="actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"
+          ><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"></circle><path
+            d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"></path></svg
+        >
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"
+          ></path></svg
+        >
+      </button>
+      <a class="btn primary small get-started" href="/docs/quick-start/">Get started</a>
+      <button class="icon-btn menu-btn" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg
+        >
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const root = document.documentElement;
+  document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('starlight-theme', next);
+    } catch {}
+  });
+
+  const menuButton = document.querySelector<HTMLButtonElement>('.menu-btn');
+  menuButton?.addEventListener('click', () => {
+    const open = menuButton.getAttribute('aria-expanded') !== 'true';
+    menuButton.setAttribute('aria-expanded', String(open));
+    document.querySelector('.site-header')?.classList.toggle('open', open);
+  });
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--site-bg) 85%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--site-border);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 64px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font: 850 1.25rem/1 var(--site-font-display);
+    color: var(--site-text);
+    text-decoration: none;
+  }
+  .logo :global(svg) {
+    width: 30px;
+    height: 30px;
+    display: block;
+  }
+  .nav ul {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .nav a {
+    display: block;
+    padding: 8px 12px;
+    border-radius: 999px;
+    color: var(--site-text-2);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .nav a:hover {
+    color: var(--site-text);
+    background: var(--site-accent-soft);
+  }
+  .nav a[aria-current='page'] {
+    color: var(--site-accent);
+    background: var(--site-accent-soft);
+  }
+  .actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--site-border);
+    background: var(--site-surface);
+    color: var(--site-text-2);
+    cursor: pointer;
+  }
+  .icon-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  :global([data-theme='dark']) .sun,
+  :global([data-theme='light']) .moon {
+    display: none;
+  }
+  .menu-btn {
+    display: none;
+  }
+
+  @media (max-width: 760px) {
+    .menu-btn {
+      display: inline-grid;
+    }
+    .get-started {
+      display: none;
+    }
+    .nav {
+      position: absolute;
+      inset: 64px 0 auto 0;
+      display: none;
+      background: var(--site-bg);
+      border-bottom: 1px solid var(--site-border);
+      padding: 8px 16px 16px;
+    }
+    .site-header.open .nav {
+      display: block;
+    }
+    .nav ul {
+      flex-direction: column;
+    }
+  }
+</style>

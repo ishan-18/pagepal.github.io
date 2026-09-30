@@ -1,0 +1,75 @@
+---
+title: Installation
+description: Install pagepal from npm, load it with a script tag, or use the web component.
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## With a package manager
+
+<Tabs syncKey="pkg">
+  <TabItem label="npm">
+    ```bash
+    npm install pagepal
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add pagepal
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add pagepal
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    bun add pagepal
+    ```
+  </TabItem>
+</Tabs>
+
+pagepal has no dependencies. It ships ES modules and CommonJS, with TypeScript types included.
+
+## With a script tag
+
+No build step needed. The script-tag build includes everything, puts the API on `window.PagePal`, and registers the `<page-pal>` element:
+
+```html
+<script src="https://unpkg.com/pagepal"></script>
+<page-pal watch="form#signup" requests></page-pal>
+```
+
+or, from JavaScript:
+
+```html
+<script src="https://unpkg.com/pagepal"></script>
+<script>
+  PagePal.createPal({ watch: 'form#signup', requests: true });
+</script>
+```
+
+<Aside type="tip">
+  Pin a version in production, for example `https://unpkg.com/pagepal@1`, so a future major release can't change your page.
+</Aside>
+
+## Entry points
+
+Import only what you use. Each entry point is tree-shakable, and they share code, so importing several never duplicates the core.
+
+| Import | What it gives you |
+| --- | --- |
+| `pagepal` | `createPal()` with every watcher, characters, types |
+| `pagepal/core` | `createPalCore()` with no watchers, for [smaller bundles](/docs/advanced/bundle-size/) |
+| `pagepal/watchers` | Individual watchers: `forms()`, `requests()`, `deadClicks()`, … |
+| `pagepal/characters` | `blob`, `cat`, `ghost`, `defineCharacter()` |
+| `pagepal/analytics` | [`analytics()`](/docs/analytics/), `summarize()`, adapters |
+| `pagepal/debug` | [`debugPanel()`](/docs/advanced/debugging/) |
+| `pagepal/element` | Registers [`<page-pal>`](/docs/frameworks/web-component/) |
+| `pagepal/react` | [React components and hooks](/docs/frameworks/react/) |
+| `pagepal/vue` | [Vue component and composable](/docs/frameworks/vue/) |
+
+## Browser support
+
+pagepal targets evergreen browsers (Chrome, Edge, Firefox, Safari). It relies on Shadow DOM, `color-mix()` and the individual `translate`/`rotate` CSS properties. On the server it does nothing: see [server-side rendering](/docs/frameworks/ssr/).

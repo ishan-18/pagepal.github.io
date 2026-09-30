@@ -1,0 +1,78 @@
+/*
+ * Site tokens shared by the custom pages and the Starlight docs.
+ * The theme lives on <html data-theme="light|dark"> (Starlight's convention),
+ * so one toggle drives both. Without JS, the OS preference applies.
+ */
+:root {
+  --site-font-display: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
+  --site-font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --site-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --site-radius: 14px;
+  --site-radius-sm: 9px;
+  --site-max: 1160px;
+
+  --site-brand: #7c5cff;
+  --site-brand-strong: #6147d6;
+  --site-leaf: #3fa66b;
+}
+
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --site-bg: #f8f7fc;
+  --site-bg-alt: #f1eefb;
+  --site-surface: #ffffff;
+  --site-border: #e4e0f0;
+  --site-text: #1b1726;
+  --site-text-2: #4d4760;
+  --site-muted: #6d6780;
+  --site-accent: #6147d6;
+  --site-accent-soft: #ece7ff;
+  --site-accent-ink: #ffffff;
+  --site-code-bg: #f4f2fa;
+  --site-shadow: 0 1px 2px rgba(27, 23, 38, 0.05), 0 8px 24px rgba(27, 23, 38, 0.06);
+  --site-bar: #2a78d6;
+  --site-bar-track: #eceae5;
+  --site-ok: #1a7f4b;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --site-bg: #121019;
+  --site-bg-alt: #17141f;
+  --site-surface: #1c1926;
+  --site-border: #2f2a3d;
+  --site-text: #f1eefa;
+  --site-text-2: #c9c3da;
+  --site-muted: #9d96b1;
+  --site-accent: #a592ff;
+  --site-accent-soft: #2a2248;
+  --site-accent-ink: #14111c;
+  --site-code-bg: #16131e;
+  --site-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --site-bar: #3987e5;
+  --site-bar-track: #2a2733;
+  --site-ok: #5fd39a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --site-bg: #121019;
+    --site-bg-alt: #17141f;
+    --site-surface: #1c1926;
+    --site-border: #2f2a3d;
+    --site-text: #f1eefa;
+    --site-text-2: #c9c3da;
+    --site-muted: #9d96b1;
+    --site-accent: #a592ff;
+    --site-accent-soft: #2a2248;
+    --site-accent-ink: #14111c;
+    --site-code-bg: #16131e;
+    --site-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --site-bar: #3987e5;
+    --site-bar-track: #2a2733;
+    --site-ok: #5fd39a;
+  }
+}

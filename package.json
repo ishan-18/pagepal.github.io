@@ -1,0 +1,26 @@
+{
+  "name": "pagepal-website",
+  "description": "Website and documentation for the pagepal npm package.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/sync-changelog.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/sync-changelog.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "check:links": "node scripts/check-links.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.4",
+    "@fontsource-variable/nunito": "^5.3.0",
+    "astro": "^7.3.5",
+    "pagepal": "file:../pagepal",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "~5.9.3"
+  }
+}

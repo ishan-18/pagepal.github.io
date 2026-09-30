@@ -1,0 +1,61 @@
+---
+import CodeBlock from './CodeBlock.astro';
+
+interface Props {
+  /** Unique within the page. */
+  id: string;
+  items: { label: string; code: string; lang?: string }[];
+}
+
+const { id, items } = Astro.props;
+---
+
+<div class="tabs" data-tabs>
+  <div role="tablist" aria-label="Code examples">
+    {
+      items.map((item, i) => (
+        <button
+          type="button"
+          role="tab"
+          id={`${id}-tab-${i}`}
+          aria-controls={`${id}-panel-${i}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+        >
+          {item.label}
+        </button>
+      ))
+    }
+  </div>
+  {
+    items.map((item, i) => (
+      <div role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-tab-${i}`} hidden={i !== 0}>
+        <CodeBlock code={item.code} lang={item.lang} />
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((tabs) => {
+    const buttons = [...tabs.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const select = (index: number) => {
+      buttons.forEach((button, i) => {
+        const selected = i === index;
+        button.setAttribute('aria-selected', String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        document.getElementById(button.getAttribute('aria-controls')!)!.hidden = !selected;
+      });
+    };
+    buttons.forEach((button, i) => {
+      button.addEventListener('click', () => select(i));
+      button.addEventListener('keydown', (event) => {
+        const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+        if (!step) return;
+        const next = (i + step + buttons.length) % buttons.length;
+        select(next);
+        buttons[next]!.focus();
+      });
+    });
+  });
+</script>

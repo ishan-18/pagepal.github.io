@@ -1,0 +1,87 @@
+---
+title: Delivery & adapters
+description: How events are batched and sent, and how to forward them to GA4, PostHog, Segment or Plausible.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## To your endpoint
+
+```ts
+analytics({ endpoint: '/api/ux' });
+```
+
+- Events are **batched**. A batch is sent when it reaches `batchSize` events (20), after `flushInterval` (5 s), when the tab is hidden, and when the page is closed.
+- Sent with **`navigator.sendBeacon`**, which the browser completes even after the page unloads. If beacons aren't available, pagepal falls back to `fetch` with `keepalive`.
+- The body is `{"events": [...]}` with content type **`text/plain`**, so cross-origin endpoints need no CORS preflight. Parse it as JSON on the server ([examples](/docs/analytics/receiving/)).
+- Large batches are split to stay under the beacon size limit.
+- pagepal's own delivery requests are **never** seen by its request watcher, so they don't make the pal wait or count as failures.
+
+## To your own code
+
+`send` receives each batch. Pass one function or several:
+
+```ts
+analytics({
+  send: (events) => myQueue.push(...events),
+});
+```
+
+A sink may return a promise. Errors, thrown or rejected, are swallowed, so a broken sink can't break your page. `endpoint` and `send` can be used together.
+
+## To the tools you already use
+
+<Tabs>
+  <TabItem label="PostHog">
+    ```ts
+    import posthog from 'posthog-js';
+    import { analytics, toPostHog } from 'pagepal/analytics';
+
+    analytics({ send: toPostHog(posthog) });
+    ```
+  </TabItem>
+  <TabItem label="Google Analytics 4">
+    ```ts
+    import { analytics, toGA4 } from 'pagepal/analytics';
+
+    analytics({ send: toGA4(window.gtag) });
+    ```
+  </TabItem>
+  <TabItem label="Segment / RudderStack">
+    ```ts
+    import { analytics, toSegment } from 'pagepal/analytics';
+
+    analytics({ send: toSegment(window.analytics) });
+    ```
+  </TabItem>
+  <TabItem label="Plausible">
+    ```ts
+    import { analytics, toPlausible } from 'pagepal/analytics';
+
+    analytics({ send: toPlausible(window.plausible) });
+    ```
+  </TabItem>
+</Tabs>
+
+Adapters send events named `pagepal_<type>` (for example `pagepal_rage_click`) with flat properties. The per-view `view` id is dropped, because those tools have their own session model. `page_summary` counts are flattened to `counts_<type>`. **`page_view` is not forwarded**, since those tools already count page views.
+
+Combine them freely:
+
+```ts
+analytics({ endpoint: '/api/ux', send: [toPostHog(posthog), toGA4(window.gtag)] });
+```
+
+## Controlling delivery
+
+```ts
+const ux = analytics({ endpoint: '/api/ux', batchSize: 50, flushInterval: 10_000 });
+
+ux.flush();     // send what's queued now
+ux.events();    // what this page view recorded (last 500)
+ux.summary();   // summarize(ux.events())
+ux.active;      // false if sampled out or a privacy signal is set
+```
+
+## Single-page apps
+
+Each pal owns one page view. When the pal is destroyed (a route unmounts it, or you call `pal.destroy()`), analytics closes the view: it records `form_abandon` for started forms and a `page_summary`, then flushes. A page restored from the back/forward cache starts a new view.

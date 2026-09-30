@@ -1,0 +1,63 @@
+---
+title: Script tag & web component
+description: Use pagepal without a build step, or in any framework, with the <page-pal> element.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`<page-pal>` works in plain HTML and in every framework that renders HTML: Svelte, Angular, Solid, Astro, Rails, Django templates, WordPress.
+
+## Plain HTML
+
+The script-tag build registers the element for you:
+
+```html
+<script src="https://unpkg.com/pagepal@1"></script>
+
+<page-pal watch="form#signup" requests character="cat"></page-pal>
+```
+
+## In a bundled app
+
+```ts
+import 'pagepal/element';
+```
+
+Then use `<page-pal>` in your templates. In Angular, add `CUSTOM_ELEMENTS_SCHEMA` to the component that uses it.
+
+## Attributes
+
+| Attribute | Example | Option |
+| --- | --- | --- |
+| `character` | `character="ghost"` | `character` |
+| `position` | `position="bottom-left"` | `position` (`inline` renders inside the element) |
+| `size`, `offset` | `size="64"` | `size`, `offset` |
+| `color` | `color="#e8590c"` or `color="auto"` | `color` |
+| `watch` | `watch="form#signup, form#login"` | `watch` (any CSS selector list) |
+| `storage-key` | `storage-key="docs-pal"` | `storageKey` |
+| `analytics-endpoint` | `analytics-endpoint="/api/ux"` | adds the [analytics plugin](/docs/analytics/) |
+
+On/off attributes: `requests`, `errors`, `interactive`, `keyboard`, `remember`, `scroll`, `network`, `dark-mode`, `idle`, `password`, `frustration`, `dead-clicks`, `avoid`, `copy`, `welcome-back`. Present means on; `="false"` means off:
+
+```html
+<page-pal requests errors idle="false" dark-mode="false"></page-pal>
+```
+
+Changing any attribute recreates the pal with the new options. Removing the element removes the pal.
+
+## Reaching the Pal
+
+```js
+const el = document.querySelector('page-pal');
+
+el.addEventListener('pagepal:ready', (event) => {
+  const pal = event.detail;
+  pal.on('frustration', (d) => console.log(d.kind));
+});
+
+el.pal?.react('cheer');   // once it's connected
+```
+
+<Aside>
+  The element itself renders nothing (`display: contents`). The pal appears in its corner as usual, or inside the element with `position="inline"`.
+</Aside>

@@ -1,0 +1,97 @@
+---
+title: React
+description: The PagePal component, the usePal hook, and sharing one pal with PagePalProvider.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+```bash
+npm install pagepal
+```
+
+`pagepal/react` works with React 17 and later. React is a peer dependency and isn't bundled.
+
+## `<PagePal>`
+
+Renders nothing; puts a pal on the page while mounted. Props are the same as [`createPal()` options](/docs/reference/options/):
+
+```tsx
+import { PagePal } from 'pagepal/react';
+
+export function App() {
+  return (
+    <>
+      <PagePal watch="form#signup" requests character="cat" />
+      <Routes />
+    </>
+  );
+}
+```
+
+## Sharing it: `PagePalProvider` and `usePagePal`
+
+To react from deep in your tree, for example to cheer after the server confirms a save:
+
+```tsx
+import { PagePalProvider, usePagePal } from 'pagepal/react';
+import { analytics } from 'pagepal/analytics';
+
+const ux = analytics({ endpoint: '/api/ux' });
+
+export function App() {
+  return (
+    <PagePalProvider requests plugins={[ux]}>
+      <Checkout />
+    </PagePalProvider>
+  );
+}
+
+function SaveButton() {
+  const pal = usePagePal();
+  return (
+    <button
+      onClick={async () => {
+        const res = await save();
+        pal?.react(res.ok ? 'cheer' : 'wince');
+      }}
+    >
+      Save
+    </button>
+  );
+}
+```
+
+`usePagePal()` returns `null` before the provider mounts and outside a provider, so use `pal?.`.
+
+## `usePal(options)`
+
+The hook behind both components. It returns the `Pal`, or `null` before mount:
+
+```tsx
+import { usePal } from 'pagepal/react';
+
+function Onboarding() {
+  const pal = usePal({ watch: '#onboarding-form', idle: false });
+  useEffect(() => {
+    pal?.say('Welcome! Let’s get you set up.');
+  }, [pal]);
+  return <form id="onboarding-form">…</form>;
+}
+```
+
+<Aside type="caution">
+  Options are read **once, on mount**. To change them, change the component's `key`, which recreates the pal. This avoids tearing the pal down on every render when options are written inline.
+</Aside>
+
+## Strict Mode and SSR
+
+- In Strict Mode, React mounts, unmounts and remounts effects in development. pagepal cleans up completely, so you still get exactly one pal.
+- On the server nothing renders, and the pal is created in an effect on the client. It's safe with Next.js, Remix and other SSR frameworks. With the Next.js App Router, use it inside a `'use client'` component.
+
+## Form libraries
+
+pagepal watches `aria-invalid`. With React Hook Form:
+
+```tsx
+<input {...register('email', { required: true })} aria-invalid={errors.email ? 'true' : 'false'} />
+```

@@ -1,0 +1,195 @@
+---
+// Renders a `summarize()` result server-side: KPI tiles and ranked lists with magnitude bars.
+import type { UXSummary } from 'pagepal/analytics';
+
+interface Props {
+  summary: UXSummary;
+  caption?: string;
+}
+
+const { summary, caption } = Astro.props;
+const pct = (n: number) => `${Math.round(n * 100)}%`;
+const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+const hotspots = summary.frustration.slice(0, 4);
+const fields = summary.formErrors.slice(0, 3);
+const endpoints = summary.requests.slice(0, 3);
+const maxSpot = Math.max(1, ...hotspots.map((h) => h.total));
+const maxField = Math.max(1, ...fields.map((f) => f.count));
+const maxEndpoint = Math.max(1, ...endpoints.map((e) => e.errors + e.slow));
+const form = summary.forms[0];
+---
+
+<div class="preview">
+  <div class="kpis">
+    <div><span class="k">{summary.views}</span><span class="l">page views</span></div>
+    <div><span class="k">{pct(summary.frustrationRate)}</span><span class="l">had a rage or dead click</span></div>
+    <div><span class="k">{secs(summary.avgWaitMs)}</span><span class="l">avg. wait per view</span></div>
+    <div><span class="k">{pct(summary.dismissRate)}</span><span class="l">dismissed the mascot</span></div>
+  </div>
+
+  <div class="lists">
+    <section>
+      <h4>Frustration hotspots</h4>
+      <ol>
+        {
+          hotspots.map((h) => (
+            <li>
+              <code>{h.element}</code>
+              <span class="meta">
+                {h.page} · {h.rageClicks} rage, {h.deadClicks} dead
+              </span>
+              <span class="bar" title={`${h.total} frustrated clicks`}>
+                <span class="fill" style={`width:${(h.total / maxSpot) * 100}%`} />
+                <span class="n">{h.total}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+    <section>
+      <h4>Form errors by field</h4>
+      <ol>
+        {
+          fields.map((f) => (
+            <li>
+              <code>{f.field}</code>
+              <span class="meta">{f.validity}</span>
+              <span class="bar" title={`${f.count} errors`}>
+                <span class="fill" style={`width:${(f.count / maxField) * 100}%`} />
+                <span class="n">{f.count}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+      {
+        form && (
+          <p class="note">
+            <code>{form.form}</code>: {form.successes} submitted, {form.abandons} abandoned, most often on{' '}
+            <code>{form.topAbandonField}</code>
+          </p>
+        )
+      }
+    </section>
+    <section>
+      <h4>Failing and slow requests</h4>
+      <ol>
+        {
+          endpoints.map((e) => (
+            <li>
+              <code>{e.endpoint}</code>
+              <span class="meta">
+                {e.errors} errors, {e.slow} slow · worst {secs(e.worstMs)}
+              </span>
+              <span class="bar" title={`${e.errors + e.slow} problem requests`}>
+                <span class="fill" style={`width:${((e.errors + e.slow) / maxEndpoint) * 100}%`} />
+                <span class="n">{e.errors + e.slow}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+  </div>
+  {caption && <p class="caption">{caption}</p>}
+</div>
+
+<style>
+  .preview {
+    display: grid;
+    gap: 18px;
+  }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .kpis > div {
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: grid;
+  }
+  .k {
+    font: 800 1.7rem/1.1 var(--site-font-display);
+    font-variant-numeric: tabular-nums;
+  }
+  .l {
+    color: var(--site-muted);
+    font-size: 0.8rem;
+  }
+  .lists {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+  section {
+    background: var(--site-surface);
+    border: 1px solid var(--site-border);
+    border-radius: 12px;
+    padding: 14px;
+    min-width: 0;
+  }
+  h4 {
+    margin: 0 0 10px;
+    font: 800 0.95rem/1.2 var(--site-font-display);
+  }
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  li {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+  li code {
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  .meta {
+    color: var(--site-muted);
+    font-size: 0.78rem;
+  }
+  /* Magnitude: one sequential hue, rounded data end; the number is printed in text ink. */
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bar::before {
+    content: '';
+    display: none;
+  }
+  .fill {
+    height: 8px;
+    border-radius: 0 4px 4px 0;
+    background: var(--site-bar);
+    min-width: 2px;
+  }
+  .n {
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--site-text-2);
+  }
+  .note {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--site-text-2);
+  }
+  .note code {
+    font-size: 0.76rem;
+  }
+  .caption {
+    color: var(--site-muted);
+    font-size: 0.8rem;
+  }
+</style>

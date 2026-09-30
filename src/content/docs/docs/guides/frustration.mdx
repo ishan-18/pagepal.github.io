@@ -1,0 +1,61 @@
+---
+title: Rage & dead clicks
+description: Detect clicks that go nowhere, and repeated angry clicking, as a UX signal.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Two of the most useful UX signals are clicks that don't work. pagepal detects both, reacts, and emits a `frustration` event.
+
+<div class="demo-box">
+  <p class="demo-hint">This button does nothing on purpose. Click once, wait a second (dead click), then click four times fast (rage click). Mood: <code data-pal-mood>neutral</code></p>
+  <div class="demo-row">
+    <button type="button">Apply coupon</button>
+  </div>
+</div>
+
+## Dead clicks → `confused`
+
+A click on something that **looks clickable**, after which **nothing happens** for a second.
+
+- *Looks clickable*: links, buttons, `role="button"` (and link, tab, menuitem, checkbox, switch), submit inputs, `<summary>`, `[onclick]`, or anything styled `cursor: pointer`. For the cursor case pagepal reports the outermost element with the pointer, such as the card rather than the span inside it.
+- *Something happens*: any DOM change outside the pal, a navigation (`hashchange`, `popstate`, `pagehide`), a scroll that starts after the click, focus moving, or a watched request starting.
+
+Ignored on purpose: form fields, `<select>`, labels, media, iframes, editable content, links that open a new tab or download, text selection, and clicks with modifier keys.
+
+```ts
+createPal({ deadClicks: { timeout: 1000, ignore: '.copy-button' } });
+```
+
+<Aside>
+  Some things work without changing the page, such as a "Copy to clipboard" button. Mark them with `data-pagepal-ignore` (or use `ignore`) so they aren't reported.
+</Aside>
+
+## Rage clicks → `concerned`
+
+**Four or more clicks within a second, within 30px of each other.** Three would catch triple-clicking to select a paragraph.
+
+```ts
+createPal({ frustration: { clicks: 4, within: 1000, radius: 30 } });
+```
+
+Clicks on the pal itself never count: poking the mascot is play.
+
+A rage click is not *also* reported as dead clicks on the same element.
+
+## The `frustration` event
+
+```ts
+pal.on('frustration', ({ kind, target, clicks, x, y }) => {
+  // kind: 'rage-click' | 'dead-click'
+  myAnalytics.track('frustration', { kind, element: target.id });
+});
+```
+
+The [analytics plugin](/docs/analytics/) records these as `rage_click` and `dead_click` with a privacy-safe description of the element, and `summarize()` ranks them into a list of hotspots.
+
+## Turning them off
+
+```ts
+createPal({ frustration: false, deadClicks: false });
+```

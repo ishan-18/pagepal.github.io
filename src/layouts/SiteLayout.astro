@@ -1,0 +1,75 @@
+---
+import '@fontsource-variable/nunito';
+import '../styles/tokens.css';
+import '../styles/site.css';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import { SITE } from '../site';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Start the site-wide pal (pages with their own pal pass false). */
+  pal?: boolean;
+  palSize?: number;
+}
+
+const { title, description = SITE.tagline, pal = true, palSize = 72 } = Astro.props;
+const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${title} | ${SITE.name}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta name="theme-color" content="#7c5cff" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {Astro.site && <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />}
+    <script is:inline>
+      // Same storage key and logic as the Starlight docs, so the theme carries across.
+      (() => {
+        let stored = '';
+        try {
+          stored = localStorage.getItem('starlight-theme') || '';
+        } catch {}
+        const theme =
+          stored === 'light' || stored === 'dark' ? stored : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <SiteHeader />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+    {pal && <div data-site-pal data-size={palSize} hidden></div>}
+    <script>
+      import { startSitePal } from '../scripts/site-pal';
+      const marker = document.querySelector<HTMLElement>('[data-site-pal]');
+      if (marker) startSitePal({ size: Number(marker.dataset.size) || 72 });
+    </script>
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 8px;
+    z-index: 100;
+    background: var(--site-surface);
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+  .skip:focus {
+    left: 8px;
+  }
+</style>
